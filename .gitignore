@@ -1,0 +1,7 @@
+<<<<<<< HEAD
+*.class
+=======
+*.class
+Java8*.java
+*.tokens
+>>>>>>> First commit
