@@ -1,10 +1,10 @@
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.*;
-import org.antlr.v4.runtime.tree.*;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ArrayList;
+
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class DocumenterListener extends Java8BaseListener {
 
@@ -16,6 +16,12 @@ public class DocumenterListener extends Java8BaseListener {
 	public ArrayList<String> imports = new ArrayList<>();
 	public ArrayList<CustomClass> classes = new ArrayList<>();
 	public ArrayList<CustomInterface> interfaces = new ArrayList<>();
+	public String xml; 
+	
+	Boolean imports_printed=false;
+	String separator="\n";
+	int classindex=0;
+	int methodindex=0;
 
 	/** Event Listeners **/
 	@Override public void enterLiteral(Java8Parser.LiteralContext ctx) { }
@@ -52,7 +58,9 @@ public class DocumenterListener extends Java8BaseListener {
 	@Override public void exitArrayType(Java8Parser.ArrayTypeContext ctx) { }
 	@Override public void enterDims(Java8Parser.DimsContext ctx) { }
 	@Override public void exitDims(Java8Parser.DimsContext ctx) { }
-	@Override public void enterTypeParameter(Java8Parser.TypeParameterContext ctx) { }
+	@Override public void enterTypeParameter(Java8Parser.TypeParameterContext ctx) { 
+		classes.get(classindex).typeParameters.add(ctx.getText());
+	}
 	@Override public void exitTypeParameter(Java8Parser.TypeParameterContext ctx) { }
 	@Override public void enterTypeParameterModifier(Java8Parser.TypeParameterModifierContext ctx) { }
 	@Override public void exitTypeParameterModifier(Java8Parser.TypeParameterModifierContext ctx) { }
@@ -82,8 +90,16 @@ public class DocumenterListener extends Java8BaseListener {
 	@Override public void exitMethodName(Java8Parser.MethodNameContext ctx) { }
 	@Override public void enterAmbiguousName(Java8Parser.AmbiguousNameContext ctx) { }
 	@Override public void exitAmbiguousName(Java8Parser.AmbiguousNameContext ctx) { }
-	@Override public void enterCompilationUnit(Java8Parser.CompilationUnitContext ctx) { }
-	@Override public void exitCompilationUnit(Java8Parser.CompilationUnitContext ctx) { }
+	@Override public void enterCompilationUnit(Java8Parser.CompilationUnitContext ctx) { 
+		xml+="<code>"+separator;
+	}
+	@Override public void exitCompilationUnit(Java8Parser.CompilationUnitContext ctx) { 
+		printimports();
+		printclasses();
+		xml+="</code>"+separator;
+		System.out.println(xml);		
+	}
+
 	@Override public void enterPackageDeclaration(Java8Parser.PackageDeclarationContext ctx) { }
 
 	@Override public void exitPackageDeclaration(Java8Parser.PackageDeclarationContext ctx) {
@@ -92,12 +108,15 @@ public class DocumenterListener extends Java8BaseListener {
 			name += ctx.getChild(i).getText();
 		}
 		packageName = name;
+		if (packageName!="")xml+="<paquete>"+packageName+"</paquete>"+separator;
 	}
 
 	@Override public void enterPackageModifier(Java8Parser.PackageModifierContext ctx) { }
 	@Override public void exitPackageModifier(Java8Parser.PackageModifierContext ctx) { }
 	@Override public void enterImportDeclaration(Java8Parser.ImportDeclarationContext ctx) { }
-	@Override public void exitImportDeclaration(Java8Parser.ImportDeclarationContext ctx) { }
+	@Override public void exitImportDeclaration(Java8Parser.ImportDeclarationContext ctx) { 
+
+	}
 	@Override public void enterSingleTypeImportDeclaration(Java8Parser.SingleTypeImportDeclarationContext ctx) { }
 	@Override public void exitSingleTypeImportDeclaration(Java8Parser.SingleTypeImportDeclarationContext ctx) {
 		imports.add(ctx.typeName().getText());
@@ -116,21 +135,44 @@ public class DocumenterListener extends Java8BaseListener {
 	}
 	@Override public void enterTypeDeclaration(Java8Parser.TypeDeclarationContext ctx) { }
 	@Override public void exitTypeDeclaration(Java8Parser.TypeDeclarationContext ctx) { }
-	@Override public void enterClassDeclaration(Java8Parser.ClassDeclarationContext ctx) { }
+	@Override public void enterClassDeclaration(Java8Parser.ClassDeclarationContext ctx) {
+
+	}
 	@Override public void exitClassDeclaration(Java8Parser.ClassDeclarationContext ctx) { }
 	@Override public void enterNormalClassDeclaration(Java8Parser.NormalClassDeclarationContext ctx) {
-		System.out.println(ctx.Identifier().getText());
+		
+		
+		CustomClass currentClass=new CustomClass();
+		currentClass.name=ctx.Identifier().getText();
+		
+		//if (!ctx.getChild(0).getText().isEmpty())
+		//currentClass.classModifiers.add(ctx.getChild(0).getText());
+		
+		classes.add(currentClass);
+
+				
+		//System.out.println(currentClass.classModifiers.get(0));
+		System.out.println(currentClass.name);
 	}
-	@Override public void exitNormalClassDeclaration(Java8Parser.NormalClassDeclarationContext ctx) { }
-	@Override public void enterClassModifier(Java8Parser.ClassModifierContext ctx) { }
+	@Override public void exitNormalClassDeclaration(Java8Parser.NormalClassDeclarationContext ctx) { 
+		classindex++;
+		methodindex=0;
+	}
+	@Override public void enterClassModifier(Java8Parser.ClassModifierContext ctx) {
+		classes.get(classindex).classModifiers.add(ctx.getText());
+	}
 	@Override public void exitClassModifier(Java8Parser.ClassModifierContext ctx) { }
 	@Override public void enterTypeParameters(Java8Parser.TypeParametersContext ctx) { }
 	@Override public void exitTypeParameters(Java8Parser.TypeParametersContext ctx) { }
 	@Override public void enterTypeParameterList(Java8Parser.TypeParameterListContext ctx) { }
 	@Override public void exitTypeParameterList(Java8Parser.TypeParameterListContext ctx) { }
-	@Override public void enterSuperclass(Java8Parser.SuperclassContext ctx) { }
+	@Override public void enterSuperclass(Java8Parser.SuperclassContext ctx) { 
+		classes.get(classindex).superClass=ctx.getText().substring(7);
+	}
 	@Override public void exitSuperclass(Java8Parser.SuperclassContext ctx) { }
-	@Override public void enterSuperinterfaces(Java8Parser.SuperinterfacesContext ctx) { }
+	@Override public void enterSuperinterfaces(Java8Parser.SuperinterfacesContext ctx) { 
+		classes.get(classindex).superInterfaces.add(ctx.getText().substring(10).replace("<", "&lt;").replace(">", "&gt;"));
+	}
 	@Override public void exitSuperinterfaces(Java8Parser.SuperinterfacesContext ctx) { }
 	@Override public void enterInterfaceTypeList(Java8Parser.InterfaceTypeListContext ctx) { }
 	@Override public void exitInterfaceTypeList(Java8Parser.InterfaceTypeListContext ctx) { }
@@ -146,13 +188,25 @@ public class DocumenterListener extends Java8BaseListener {
 	@Override public void exitFieldModifier(Java8Parser.FieldModifierContext ctx) { }
 	@Override public void enterVariableDeclaratorList(Java8Parser.VariableDeclaratorListContext ctx) { }
 	@Override public void exitVariableDeclaratorList(Java8Parser.VariableDeclaratorListContext ctx) { }
-	@Override public void enterVariableDeclarator(Java8Parser.VariableDeclaratorContext ctx) { }
+	@Override public void enterVariableDeclarator(Java8Parser.VariableDeclaratorContext ctx) { 
+		/*CustomVariable currentvariable= new CustomVariable();
+		currentvariable.name=ctx.getChild(0).getText();
+		currentvariable.type=ctx.getParent().getText();
+		if (methodindex==0)
+		classes.get(classindex).variables.add(e)
+		if (ctx.getParent().getParent().getChildCount()<3){
+			System.out.println(ctx.getParent().getParent().getChild(0).getText()+"->"+ctx.getChild(0).getText()+"->"+classindex+"->"+methodindex);
+		}else System.out.println(ctx.getParent().getParent().getChild(1).getText()+"->"+ctx.getChild(0).getText()+"->"+classindex+"->"+methodindex);
+			*/
+			}
 	@Override public void exitVariableDeclarator(Java8Parser.VariableDeclaratorContext ctx) { }
 	@Override public void enterVariableDeclaratorId(Java8Parser.VariableDeclaratorIdContext ctx) { }
 	@Override public void exitVariableDeclaratorId(Java8Parser.VariableDeclaratorIdContext ctx) { }
 	@Override public void enterVariableInitializer(Java8Parser.VariableInitializerContext ctx) { }
 	@Override public void exitVariableInitializer(Java8Parser.VariableInitializerContext ctx) { }
-	@Override public void enterUnannType(Java8Parser.UnannTypeContext ctx) { }
+	@Override public void enterUnannType(Java8Parser.UnannTypeContext ctx) {
+		//System.out.println("Unana-->"+ctx.getParent().getParent().getText());
+	}
 	@Override public void exitUnannType(Java8Parser.UnannTypeContext ctx) { }
 	@Override public void enterUnannPrimitiveType(Java8Parser.UnannPrimitiveTypeContext ctx) { }
 	@Override public void exitUnannPrimitiveType(Java8Parser.UnannPrimitiveTypeContext ctx) { }
@@ -177,7 +231,9 @@ public class DocumenterListener extends Java8BaseListener {
 	@Override public void enterUnannArrayType(Java8Parser.UnannArrayTypeContext ctx) { }
 	@Override public void exitUnannArrayType(Java8Parser.UnannArrayTypeContext ctx) { }
 	@Override public void enterMethodDeclaration(Java8Parser.MethodDeclarationContext ctx) { }
-	@Override public void exitMethodDeclaration(Java8Parser.MethodDeclarationContext ctx) { }
+	@Override public void exitMethodDeclaration(Java8Parser.MethodDeclarationContext ctx) {
+		methodindex++;
+	}
 	@Override public void enterMethodModifier(Java8Parser.MethodModifierContext ctx) { }
 	@Override public void exitMethodModifier(Java8Parser.MethodModifierContext ctx) { }
 	@Override public void enterMethodHeader(Java8Parser.MethodHeaderContext ctx) { }
@@ -246,7 +302,12 @@ public class DocumenterListener extends Java8BaseListener {
 	@Override public void exitInterfaceBody(Java8Parser.InterfaceBodyContext ctx) { }
 	@Override public void enterInterfaceMemberDeclaration(Java8Parser.InterfaceMemberDeclarationContext ctx) { }
 	@Override public void exitInterfaceMemberDeclaration(Java8Parser.InterfaceMemberDeclarationContext ctx) { }
-	@Override public void enterConstantDeclaration(Java8Parser.ConstantDeclarationContext ctx) { }
+	@Override public void enterConstantDeclaration(Java8Parser.ConstantDeclarationContext ctx) {
+		CustomVariable currentconstant=new CustomVariable();
+		currentconstant.name=ctx.variableDeclaratorList().getText();
+		//classes.get(classindex).classModifiers.add(ctx.getText());
+		System.out.println("Constante--->"+ctx.getParent().getRuleContext().getText());
+	}
 	@Override public void exitConstantDeclaration(Java8Parser.ConstantDeclarationContext ctx) { }
 	@Override public void enterConstantModifier(Java8Parser.ConstantModifierContext ctx) { }
 	@Override public void exitConstantModifier(Java8Parser.ConstantModifierContext ctx) { }
@@ -296,7 +357,9 @@ public class DocumenterListener extends Java8BaseListener {
 	@Override public void exitBlockStatement(Java8Parser.BlockStatementContext ctx) { }
 	@Override public void enterLocalVariableDeclarationStatement(Java8Parser.LocalVariableDeclarationStatementContext ctx) { }
 	@Override public void exitLocalVariableDeclarationStatement(Java8Parser.LocalVariableDeclarationStatementContext ctx) { }
-	@Override public void enterLocalVariableDeclaration(Java8Parser.LocalVariableDeclarationContext ctx) { }
+	@Override public void enterLocalVariableDeclaration(Java8Parser.LocalVariableDeclarationContext ctx) { 
+		//System.out.println(ctx.getText()+"-->"+ctx.start.getStopIndex()+"-->"+ctx.stop.getText());
+	}
 	@Override public void exitLocalVariableDeclaration(Java8Parser.LocalVariableDeclarationContext ctx) { }
 	@Override public void enterStatement(Java8Parser.StatementContext ctx) { }
 	@Override public void exitStatement(Java8Parser.StatementContext ctx) { }
@@ -516,6 +579,77 @@ public class DocumenterListener extends Java8BaseListener {
 	@Override public void visitTerminal(TerminalNode node) { }
 	@Override public void visitErrorNode(ErrorNode node) { }
 
+	/** DOCUMENTING PROCEDURES **/
+
+	private void printimports() {
+		if (!imports.isEmpty()){
+		xml+="<imports>"+separator;
+		for (int i = 0; i < imports.size(); i++) {
+			xml+="<import>"+imports.get(i)+"</import>"+separator;
+		}
+		xml+="</imports>"+separator;
+		}	
+	}
+	private void printclasses(){
+		if (!classes.isEmpty()){
+		xml+="<clases>"+separator;
+		for (int i = 0; i < classes.size(); i++) {
+			
+			String opentag="<clase name=\""+classes.get(i).name+"\" ";
+			String content="";
+			
+			if (classes.get(i).classModifiers.size()>0){
+				for (int j = 0; j < classes.get(i).classModifiers.size(); j++){
+					opentag+="modificador_"+j+"=\""+classes.get(i).classModifiers.get(j)+"\" ";
+				}
+			}
+			
+			if (classes.get(i).superClass!=null) {
+				opentag+="superClass=\""+classes.get(i).superClass+"\" ";
+			}
+			
+			if (classes.get(i).superInterfaces.size()>0){
+				for (int j = 0; j < classes.get(i).superInterfaces.size(); j++){
+					opentag+="superInterfaz"+j+"=\""+classes.get(i).superInterfaces.get(j)+"\" ";
+				}
+			}
+
+			if (classes.get(i).typeParameters.size()>0){
+				for (int j = 0; j < classes.get(i).typeParameters.size(); j++){
+					opentag+="typeParameter"+j+"=\""+classes.get(i).typeParameters.get(j)+"\" ";
+				}
+			}
+			opentag=opentag.trim()+">";
+			
+			if (classes.get(i).constants.size()>0){
+				content+="<constants total="+classes.get(i).constants.size()+">"+separator;
+				for (int j = 0; j < classes.get(i).constants.size(); j++){
+					content+="<constant name=\""+classes.get(i).constants.get(j).name+"\" "
+							+ "type=\""+classes.get(i).constants.get(j).type+"\">"
+									+ classes.get(i).constants.get(j).value +"</constant>"+separator;
+				}
+			}
+			
+			if (classes.get(i).variables.size()>0){
+				content+="<variables total="+classes.get(i).variables.size()+">"+separator;
+				for (int j = 0; j < classes.get(i).variables.size(); j++){
+					content+="<variable name=\""+classes.get(i).variables.get(j).name+"\" "
+							+ "type=\""+classes.get(i).variables.get(j).type+"\">"
+									+ classes.get(i).variables.get(j).value +"</variable>"+separator;
+				}
+			}
+			/*
+			public ArrayList<CustomMethod> methods = new ArrayList<>();
+			public ArrayList<CustomClass> classes = new ArrayList<>();
+			public ArrayList<CustomInterface> interfaces = new ArrayList<>();
+			*/
+			
+			xml+=opentag+content+"</clase>"+separator;
+		}
+		xml+="</clases>"+separator;
+		}
+	}
+	
 }
 
 /** DOCUMENTING DATA CLASSES **/
