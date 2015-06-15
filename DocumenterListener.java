@@ -1,675 +1,765 @@
+import java.util.List;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-public class DocumenterListener extends Java8BaseListener {
+public class DocumenterListener extends JavaBaseListener {
 
 	/** Symbol Table **/
 	public Map<String, String> symbols = new HashMap<>();
+	public Stack<Object> tracer = new Stack<>();
 
 	/** Documenter Data **/
 	public String packageName;
-	public ArrayList<String> imports = new ArrayList<>();
-	public ArrayList<CustomClass> classes = new ArrayList<>();
-	public ArrayList<CustomInterface> interfaces = new ArrayList<>();
-	public String xml; 
-	
-	Boolean imports_printed=false;
-	String separator="\n";
-	int classindex=0;
-	int methodindex=0;
+	public List<CustomImport> imports = new ArrayList<>();
+	public List<CustomClass> classes = new ArrayList<>();
+	public List<CustomInterface> interfaces = new ArrayList<>();
 
 	/** Event Listeners **/
-	@Override public void enterLiteral(Java8Parser.LiteralContext ctx) { }
-	@Override public void exitLiteral(Java8Parser.LiteralContext ctx) { }
-	@Override public void enterType(Java8Parser.TypeContext ctx) { }
-	@Override public void exitType(Java8Parser.TypeContext ctx) { }
-	@Override public void enterPrimitiveType(Java8Parser.PrimitiveTypeContext ctx) { }
-	@Override public void exitPrimitiveType(Java8Parser.PrimitiveTypeContext ctx) { }
-	@Override public void enterNumericType(Java8Parser.NumericTypeContext ctx) { }
-	@Override public void exitNumericType(Java8Parser.NumericTypeContext ctx) { }
-	@Override public void enterIntegralType(Java8Parser.IntegralTypeContext ctx) { }
-	@Override public void exitIntegralType(Java8Parser.IntegralTypeContext ctx) { }
-	@Override public void enterFloatingPointType(Java8Parser.FloatingPointTypeContext ctx) { }
-	@Override public void exitFloatingPointType(Java8Parser.FloatingPointTypeContext ctx) { }
-	@Override public void enterReferenceType(Java8Parser.ReferenceTypeContext ctx) { }
-	@Override public void exitReferenceType(Java8Parser.ReferenceTypeContext ctx) { }
-	@Override public void enterClassOrInterfaceType(Java8Parser.ClassOrInterfaceTypeContext ctx) { }
-	@Override public void exitClassOrInterfaceType(Java8Parser.ClassOrInterfaceTypeContext ctx) { }
-	@Override public void enterClassType(Java8Parser.ClassTypeContext ctx) { }
-	@Override public void exitClassType(Java8Parser.ClassTypeContext ctx) { }
-	@Override public void enterClassType_lf_classOrInterfaceType(Java8Parser.ClassType_lf_classOrInterfaceTypeContext ctx) { }
-	@Override public void exitClassType_lf_classOrInterfaceType(Java8Parser.ClassType_lf_classOrInterfaceTypeContext ctx) { }
-	@Override public void enterClassType_lfno_classOrInterfaceType(Java8Parser.ClassType_lfno_classOrInterfaceTypeContext ctx) { }
-	@Override public void exitClassType_lfno_classOrInterfaceType(Java8Parser.ClassType_lfno_classOrInterfaceTypeContext ctx) { }
-	@Override public void enterInterfaceType(Java8Parser.InterfaceTypeContext ctx) { }
-	@Override public void exitInterfaceType(Java8Parser.InterfaceTypeContext ctx) { }
-	@Override public void enterInterfaceType_lf_classOrInterfaceType(Java8Parser.InterfaceType_lf_classOrInterfaceTypeContext ctx) { }
-	@Override public void exitInterfaceType_lf_classOrInterfaceType(Java8Parser.InterfaceType_lf_classOrInterfaceTypeContext ctx) { }
-	@Override public void enterInterfaceType_lfno_classOrInterfaceType(Java8Parser.InterfaceType_lfno_classOrInterfaceTypeContext ctx) { }
-	@Override public void exitInterfaceType_lfno_classOrInterfaceType(Java8Parser.InterfaceType_lfno_classOrInterfaceTypeContext ctx) { }
-	@Override public void enterTypeVariable(Java8Parser.TypeVariableContext ctx) { }
-	@Override public void exitTypeVariable(Java8Parser.TypeVariableContext ctx) { }
-	@Override public void enterArrayType(Java8Parser.ArrayTypeContext ctx) { }
-	@Override public void exitArrayType(Java8Parser.ArrayTypeContext ctx) { }
-	@Override public void enterDims(Java8Parser.DimsContext ctx) { }
-	@Override public void exitDims(Java8Parser.DimsContext ctx) { }
-	@Override public void enterTypeParameter(Java8Parser.TypeParameterContext ctx) { 
-		classes.get(classindex).typeParameters.add(ctx.getText());
+	@Override public void enterLiteral(JavaParser.LiteralContext ctx) { }
+	@Override public void exitLiteral(JavaParser.LiteralContext ctx) { }
+	@Override public void enterType(JavaParser.TypeContext ctx) { }
+	@Override public void exitType(JavaParser.TypeContext ctx) { }
+	@Override public void enterPrimitiveType(JavaParser.PrimitiveTypeContext ctx) { }
+	@Override public void exitPrimitiveType(JavaParser.PrimitiveTypeContext ctx) { }
+	@Override public void enterNumericType(JavaParser.NumericTypeContext ctx) { }
+	@Override public void exitNumericType(JavaParser.NumericTypeContext ctx) { }
+	@Override public void enterIntegralType(JavaParser.IntegralTypeContext ctx) { }
+	@Override public void exitIntegralType(JavaParser.IntegralTypeContext ctx) { }
+	@Override public void enterFloatingPointType(JavaParser.FloatingPointTypeContext ctx) { }
+	@Override public void exitFloatingPointType(JavaParser.FloatingPointTypeContext ctx) { }
+	@Override public void enterReferenceType(JavaParser.ReferenceTypeContext ctx) { }
+	@Override public void exitReferenceType(JavaParser.ReferenceTypeContext ctx) { }
+	@Override public void enterClassOrInterfaceType(JavaParser.ClassOrInterfaceTypeContext ctx) { }
+	@Override public void exitClassOrInterfaceType(JavaParser.ClassOrInterfaceTypeContext ctx) { }
+	@Override public void enterClassType(JavaParser.ClassTypeContext ctx) { }
+	@Override public void exitClassType(JavaParser.ClassTypeContext ctx) { }
+	@Override public void enterClassType_lf_classOrInterfaceType(JavaParser.ClassType_lf_classOrInterfaceTypeContext ctx) { }
+	@Override public void exitClassType_lf_classOrInterfaceType(JavaParser.ClassType_lf_classOrInterfaceTypeContext ctx) { }
+	@Override public void enterClassType_lfno_classOrInterfaceType(JavaParser.ClassType_lfno_classOrInterfaceTypeContext ctx) { }
+	@Override public void exitClassType_lfno_classOrInterfaceType(JavaParser.ClassType_lfno_classOrInterfaceTypeContext ctx) { }
+	@Override public void enterInterfaceType(JavaParser.InterfaceTypeContext ctx) { }
+	@Override public void exitInterfaceType(JavaParser.InterfaceTypeContext ctx) { }
+	@Override public void enterInterfaceType_lf_classOrInterfaceType(JavaParser.InterfaceType_lf_classOrInterfaceTypeContext ctx) { }
+	@Override public void exitInterfaceType_lf_classOrInterfaceType(JavaParser.InterfaceType_lf_classOrInterfaceTypeContext ctx) { }
+	@Override public void enterInterfaceType_lfno_classOrInterfaceType(JavaParser.InterfaceType_lfno_classOrInterfaceTypeContext ctx) { }
+	@Override public void exitInterfaceType_lfno_classOrInterfaceType(JavaParser.InterfaceType_lfno_classOrInterfaceTypeContext ctx) { }
+	@Override public void enterTypeVariable(JavaParser.TypeVariableContext ctx) { }
+	@Override public void exitTypeVariable(JavaParser.TypeVariableContext ctx) { }
+	@Override public void enterArrayType(JavaParser.ArrayTypeContext ctx) { }
+	@Override public void exitArrayType(JavaParser.ArrayTypeContext ctx) { }
+	@Override public void enterDims(JavaParser.DimsContext ctx) { }
+	@Override public void exitDims(JavaParser.DimsContext ctx) { }
+	@Override public void enterTypeParameter(JavaParser.TypeParameterContext ctx) { }
+	@Override public void exitTypeParameter(JavaParser.TypeParameterContext ctx) { }
+	@Override public void enterTypeParameterModifier(JavaParser.TypeParameterModifierContext ctx) { }
+	@Override public void exitTypeParameterModifier(JavaParser.TypeParameterModifierContext ctx) { }
+	@Override public void enterTypeBound(JavaParser.TypeBoundContext ctx) { }
+	@Override public void exitTypeBound(JavaParser.TypeBoundContext ctx) { }
+	@Override public void enterAdditionalBound(JavaParser.AdditionalBoundContext ctx) { }
+	@Override public void exitAdditionalBound(JavaParser.AdditionalBoundContext ctx) { }
+	@Override public void enterTypeArguments(JavaParser.TypeArgumentsContext ctx) { }
+	@Override public void exitTypeArguments(JavaParser.TypeArgumentsContext ctx) { }
+	@Override public void enterTypeArgumentList(JavaParser.TypeArgumentListContext ctx) { }
+	@Override public void exitTypeArgumentList(JavaParser.TypeArgumentListContext ctx) { }
+	@Override public void enterTypeArgument(JavaParser.TypeArgumentContext ctx) { }
+	@Override public void exitTypeArgument(JavaParser.TypeArgumentContext ctx) { }
+	@Override public void enterWildcard(JavaParser.WildcardContext ctx) { }
+	@Override public void exitWildcard(JavaParser.WildcardContext ctx) { }
+	@Override public void enterWildcardBounds(JavaParser.WildcardBoundsContext ctx) { }
+	@Override public void exitWildcardBounds(JavaParser.WildcardBoundsContext ctx) { }
+	@Override public void enterPackageName(JavaParser.PackageNameContext ctx) { }
+	@Override public void exitPackageName(JavaParser.PackageNameContext ctx) { }
+	@Override public void enterTypeName(JavaParser.TypeNameContext ctx) { }
+	@Override public void exitTypeName(JavaParser.TypeNameContext ctx) { }
+	@Override public void enterPackageOrTypeName(JavaParser.PackageOrTypeNameContext ctx) { }
+	@Override public void exitPackageOrTypeName(JavaParser.PackageOrTypeNameContext ctx) { }
+	@Override public void enterExpressionName(JavaParser.ExpressionNameContext ctx) { }
+	@Override public void exitExpressionName(JavaParser.ExpressionNameContext ctx) { }
+	@Override public void enterMethodName(JavaParser.MethodNameContext ctx) { }
+	@Override public void exitMethodName(JavaParser.MethodNameContext ctx) { }
+	@Override public void enterAmbiguousName(JavaParser.AmbiguousNameContext ctx) { }
+	@Override public void exitAmbiguousName(JavaParser.AmbiguousNameContext ctx) { }
+	@Override public void enterCompilationUnit(JavaParser.CompilationUnitContext ctx) {  }
+	@Override public void exitCompilationUnit(JavaParser.CompilationUnitContext ctx) { }
+	@Override public void enterPackageDeclaration(JavaParser.PackageDeclarationContext ctx) { }
+	@Override public void exitPackageDeclaration(JavaParser.PackageDeclarationContext ctx) {
+		List<TerminalNode> packageChunks = ctx.Identifier();
+		packageName = packageChunks.get(0).getText();
+		for (int i = 1; i < packageChunks.size(); i++) packageName += "." + packageChunks.get(i).getText();
 	}
-	@Override public void exitTypeParameter(Java8Parser.TypeParameterContext ctx) { }
-	@Override public void enterTypeParameterModifier(Java8Parser.TypeParameterModifierContext ctx) { }
-	@Override public void exitTypeParameterModifier(Java8Parser.TypeParameterModifierContext ctx) { }
-	@Override public void enterTypeBound(Java8Parser.TypeBoundContext ctx) { }
-	@Override public void exitTypeBound(Java8Parser.TypeBoundContext ctx) { }
-	@Override public void enterAdditionalBound(Java8Parser.AdditionalBoundContext ctx) { }
-	@Override public void exitAdditionalBound(Java8Parser.AdditionalBoundContext ctx) { }
-	@Override public void enterTypeArguments(Java8Parser.TypeArgumentsContext ctx) { }
-	@Override public void exitTypeArguments(Java8Parser.TypeArgumentsContext ctx) { }
-	@Override public void enterTypeArgumentList(Java8Parser.TypeArgumentListContext ctx) { }
-	@Override public void exitTypeArgumentList(Java8Parser.TypeArgumentListContext ctx) { }
-	@Override public void enterTypeArgument(Java8Parser.TypeArgumentContext ctx) { }
-	@Override public void exitTypeArgument(Java8Parser.TypeArgumentContext ctx) { }
-	@Override public void enterWildcard(Java8Parser.WildcardContext ctx) { }
-	@Override public void exitWildcard(Java8Parser.WildcardContext ctx) { }
-	@Override public void enterWildcardBounds(Java8Parser.WildcardBoundsContext ctx) { }
-	@Override public void exitWildcardBounds(Java8Parser.WildcardBoundsContext ctx) { }
-	@Override public void enterPackageName(Java8Parser.PackageNameContext ctx) { }
-	@Override public void exitPackageName(Java8Parser.PackageNameContext ctx) { }
-	@Override public void enterTypeName(Java8Parser.TypeNameContext ctx) { }
-	@Override public void exitTypeName(Java8Parser.TypeNameContext ctx) { }
-	@Override public void enterPackageOrTypeName(Java8Parser.PackageOrTypeNameContext ctx) { }
-	@Override public void exitPackageOrTypeName(Java8Parser.PackageOrTypeNameContext ctx) { }
-	@Override public void enterExpressionName(Java8Parser.ExpressionNameContext ctx) { }
-	@Override public void exitExpressionName(Java8Parser.ExpressionNameContext ctx) { }
-	@Override public void enterMethodName(Java8Parser.MethodNameContext ctx) { }
-	@Override public void exitMethodName(Java8Parser.MethodNameContext ctx) { }
-	@Override public void enterAmbiguousName(Java8Parser.AmbiguousNameContext ctx) { }
-	@Override public void exitAmbiguousName(Java8Parser.AmbiguousNameContext ctx) { }
-	@Override public void enterCompilationUnit(Java8Parser.CompilationUnitContext ctx) { 
-		xml+="<code>"+separator;
+	@Override public void enterPackageModifier(JavaParser.PackageModifierContext ctx) { }
+	@Override public void exitPackageModifier(JavaParser.PackageModifierContext ctx) { }
+	@Override public void enterImportDeclaration(JavaParser.ImportDeclarationContext ctx) { }
+	@Override public void exitImportDeclaration(JavaParser.ImportDeclarationContext ctx) { }
+	@Override public void enterSingleTypeImportDeclaration(JavaParser.SingleTypeImportDeclarationContext ctx) { }
+	@Override public void exitSingleTypeImportDeclaration(JavaParser.SingleTypeImportDeclarationContext ctx) {
+		imports.add(new CustomImport(ctx.typeName().getText(), "Importacion de tipo unico"));
 	}
-	@Override public void exitCompilationUnit(Java8Parser.CompilationUnitContext ctx) { 
-		printimports();
-		printclasses();
-		xml+="</code>"+separator;
-		System.out.println(xml);		
+	@Override public void enterTypeImportOnDemandDeclaration(JavaParser.TypeImportOnDemandDeclarationContext ctx) {}
+	@Override public void exitTypeImportOnDemandDeclaration(JavaParser.TypeImportOnDemandDeclarationContext ctx) {
+		imports.add(new CustomImport(ctx.packageOrTypeName().getText() + ".*", "Importacion por demanda"));
 	}
+	@Override public void enterSingleStaticImportDeclaration(JavaParser.SingleStaticImportDeclarationContext ctx) { }
+	@Override public void exitSingleStaticImportDeclaration(JavaParser.SingleStaticImportDeclarationContext ctx) {
+		imports.add(new CustomImport(ctx.typeName().getText() + "." + ctx.Identifier().getText(), "Importacion statica de tipo unico"));
+	}
+	@Override public void enterStaticImportOnDemandDeclaration(JavaParser.StaticImportOnDemandDeclarationContext ctx) { }
+	@Override public void exitStaticImportOnDemandDeclaration(JavaParser.StaticImportOnDemandDeclarationContext ctx) {
+		imports.add(new CustomImport(ctx.typeName().getText() + ".*", "Importacion statica de tipo unico"));
+	}
+	@Override public void enterTypeDeclaration(JavaParser.TypeDeclarationContext ctx) { }
+	@Override public void exitTypeDeclaration(JavaParser.TypeDeclarationContext ctx) { }
+	@Override public void enterClassDeclaration(JavaParser.ClassDeclarationContext ctx) { }
+	@Override public void exitClassDeclaration(JavaParser.ClassDeclarationContext ctx) { }
+	@Override public void enterNormalClassDeclaration(JavaParser.NormalClassDeclarationContext ctx) {
+		List<String> classModifiers = new ArrayList<>();
+		List<String> typeParameters = new ArrayList<>();
+		List<String> superInterfaces = new ArrayList<>();
 
-	@Override public void enterPackageDeclaration(Java8Parser.PackageDeclarationContext ctx) { }
+		String className = ctx.Identifier().getText();
+		String superClass = ctx.superclass() != null ? ctx.superclass().classType().getText() : null;
 
-	@Override public void exitPackageDeclaration(Java8Parser.PackageDeclarationContext ctx) {
-		String name = "";
-		for (int i = 1; i < ctx.getChildCount() - 1; i++) {
-			name += ctx.getChild(i).getText();
-		}
-		packageName = name;
-		if (packageName!="")xml+="<paquete>"+packageName+"</paquete>"+separator;
-	}
+		if (ctx.classModifier() != null)
+			for (JavaParser.ClassModifierContext x : ctx.classModifier())
+				classModifiers.add(x.getText());
 
-	@Override public void enterPackageModifier(Java8Parser.PackageModifierContext ctx) { }
-	@Override public void exitPackageModifier(Java8Parser.PackageModifierContext ctx) { }
-	@Override public void enterImportDeclaration(Java8Parser.ImportDeclarationContext ctx) { }
-	@Override public void exitImportDeclaration(Java8Parser.ImportDeclarationContext ctx) { 
+		if (ctx.typeParameters() != null)
+			for (JavaParser.TypeParameterContext x : ctx.typeParameters().typeParameterList().typeParameter())
+				typeParameters.add(x.getText());
 
-	}
-	@Override public void enterSingleTypeImportDeclaration(Java8Parser.SingleTypeImportDeclarationContext ctx) { }
-	@Override public void exitSingleTypeImportDeclaration(Java8Parser.SingleTypeImportDeclarationContext ctx) {
-		imports.add(ctx.typeName().getText());
-	}
-	@Override public void enterTypeImportOnDemandDeclaration(Java8Parser.TypeImportOnDemandDeclarationContext ctx) {}
-	@Override public void exitTypeImportOnDemandDeclaration(Java8Parser.TypeImportOnDemandDeclarationContext ctx) {
-		imports.add(ctx.packageOrTypeName().getText() + ".*");
-	}
-	@Override public void enterSingleStaticImportDeclaration(Java8Parser.SingleStaticImportDeclarationContext ctx) { }
-	@Override public void exitSingleStaticImportDeclaration(Java8Parser.SingleStaticImportDeclarationContext ctx) {
-		imports.add(ctx.typeName().getText() + ctx.getChild(ctx.getChildCount() - 3) + ctx.Identifier().getText());
-	}
-	@Override public void enterStaticImportOnDemandDeclaration(Java8Parser.StaticImportOnDemandDeclarationContext ctx) { }
-	@Override public void exitStaticImportOnDemandDeclaration(Java8Parser.StaticImportOnDemandDeclarationContext ctx) {
-		imports.add(ctx.typeName().getText() + ".*");
-	}
-	@Override public void enterTypeDeclaration(Java8Parser.TypeDeclarationContext ctx) { }
-	@Override public void exitTypeDeclaration(Java8Parser.TypeDeclarationContext ctx) { }
-	@Override public void enterClassDeclaration(Java8Parser.ClassDeclarationContext ctx) {
+		if (ctx.superinterfaces() != null)
+			for (JavaParser.InterfaceTypeContext x : ctx.superinterfaces().interfaceTypeList().interfaceType())
+				superInterfaces.add(x.getText());
 
-	}
-	@Override public void exitClassDeclaration(Java8Parser.ClassDeclarationContext ctx) { }
-	@Override public void enterNormalClassDeclaration(Java8Parser.NormalClassDeclarationContext ctx) {
-		
-		
-		CustomClass currentClass=new CustomClass();
-		currentClass.name=ctx.Identifier().getText();
-		
-		//if (!ctx.getChild(0).getText().isEmpty())
-		//currentClass.classModifiers.add(ctx.getChild(0).getText());
-		
-		classes.add(currentClass);
+		CustomClass currentClass = new CustomClass(className, classModifiers, typeParameters, superClass, superInterfaces);
+		if (tracer.size() == 0)
+			classes.add(currentClass);
+		else if (tracer.peek() instanceof CustomClass)
+			((CustomClass) tracer.peek()).classes.add(currentClass);
+		else if (tracer.peek() instanceof CustomInterface)
+			((CustomInterface) tracer.peek()).classes.add(currentClass);
 
-				
-		//System.out.println(currentClass.classModifiers.get(0));
-		System.out.println(currentClass.name);
+		tracer.push((Object) currentClass);
 	}
-	@Override public void exitNormalClassDeclaration(Java8Parser.NormalClassDeclarationContext ctx) { 
-		classindex++;
-		methodindex=0;
+	@Override public void exitNormalClassDeclaration(JavaParser.NormalClassDeclarationContext ctx) {
+		tracer.pop();
 	}
-	@Override public void enterClassModifier(Java8Parser.ClassModifierContext ctx) {
-		classes.get(classindex).classModifiers.add(ctx.getText());
-	}
-	@Override public void exitClassModifier(Java8Parser.ClassModifierContext ctx) { }
-	@Override public void enterTypeParameters(Java8Parser.TypeParametersContext ctx) { }
-	@Override public void exitTypeParameters(Java8Parser.TypeParametersContext ctx) { }
-	@Override public void enterTypeParameterList(Java8Parser.TypeParameterListContext ctx) { }
-	@Override public void exitTypeParameterList(Java8Parser.TypeParameterListContext ctx) { }
-	@Override public void enterSuperclass(Java8Parser.SuperclassContext ctx) { 
-		classes.get(classindex).superClass=ctx.getText().substring(7);
-	}
-	@Override public void exitSuperclass(Java8Parser.SuperclassContext ctx) { }
-	@Override public void enterSuperinterfaces(Java8Parser.SuperinterfacesContext ctx) { 
-		classes.get(classindex).superInterfaces.add(ctx.getText().substring(10).replace("<", "&lt;").replace(">", "&gt;"));
-	}
-	@Override public void exitSuperinterfaces(Java8Parser.SuperinterfacesContext ctx) { }
-	@Override public void enterInterfaceTypeList(Java8Parser.InterfaceTypeListContext ctx) { }
-	@Override public void exitInterfaceTypeList(Java8Parser.InterfaceTypeListContext ctx) { }
-	@Override public void enterClassBody(Java8Parser.ClassBodyContext ctx) { }
-	@Override public void exitClassBody(Java8Parser.ClassBodyContext ctx) { }
-	@Override public void enterClassBodyDeclaration(Java8Parser.ClassBodyDeclarationContext ctx) { }
-	@Override public void exitClassBodyDeclaration(Java8Parser.ClassBodyDeclarationContext ctx) { }
-	@Override public void enterClassMemberDeclaration(Java8Parser.ClassMemberDeclarationContext ctx) { }
-	@Override public void exitClassMemberDeclaration(Java8Parser.ClassMemberDeclarationContext ctx) { }
-	@Override public void enterFieldDeclaration(Java8Parser.FieldDeclarationContext ctx) { }
-	@Override public void exitFieldDeclaration(Java8Parser.FieldDeclarationContext ctx) { }
-	@Override public void enterFieldModifier(Java8Parser.FieldModifierContext ctx) { }
-	@Override public void exitFieldModifier(Java8Parser.FieldModifierContext ctx) { }
-	@Override public void enterVariableDeclaratorList(Java8Parser.VariableDeclaratorListContext ctx) { }
-	@Override public void exitVariableDeclaratorList(Java8Parser.VariableDeclaratorListContext ctx) { }
-	@Override public void enterVariableDeclarator(Java8Parser.VariableDeclaratorContext ctx) { 
-		/*CustomVariable currentvariable= new CustomVariable();
-		currentvariable.name=ctx.getChild(0).getText();
-		currentvariable.type=ctx.getParent().getText();
-		if (methodindex==0)
-		classes.get(classindex).variables.add(e)
-		if (ctx.getParent().getParent().getChildCount()<3){
-			System.out.println(ctx.getParent().getParent().getChild(0).getText()+"->"+ctx.getChild(0).getText()+"->"+classindex+"->"+methodindex);
-		}else System.out.println(ctx.getParent().getParent().getChild(1).getText()+"->"+ctx.getChild(0).getText()+"->"+classindex+"->"+methodindex);
-			*/
+	@Override public void enterClassModifier(JavaParser.ClassModifierContext ctx) { }
+	@Override public void exitClassModifier(JavaParser.ClassModifierContext ctx) { }
+	@Override public void enterTypeParameters(JavaParser.TypeParametersContext ctx) { }
+	@Override public void exitTypeParameters(JavaParser.TypeParametersContext ctx) { }
+	@Override public void enterTypeParameterList(JavaParser.TypeParameterListContext ctx) { }
+	@Override public void exitTypeParameterList(JavaParser.TypeParameterListContext ctx) { }
+	@Override public void enterSuperclass(JavaParser.SuperclassContext ctx) { }
+	@Override public void exitSuperclass(JavaParser.SuperclassContext ctx) { }
+	@Override public void enterSuperinterfaces(JavaParser.SuperinterfacesContext ctx) { }
+	@Override public void exitSuperinterfaces(JavaParser.SuperinterfacesContext ctx) { }
+	@Override public void enterInterfaceTypeList(JavaParser.InterfaceTypeListContext ctx) { }
+	@Override public void exitInterfaceTypeList(JavaParser.InterfaceTypeListContext ctx) { }
+	@Override public void enterClassBody(JavaParser.ClassBodyContext ctx) { }
+	@Override public void exitClassBody(JavaParser.ClassBodyContext ctx) { }
+	@Override public void enterClassBodyDeclaration(JavaParser.ClassBodyDeclarationContext ctx) { }
+	@Override public void exitClassBodyDeclaration(JavaParser.ClassBodyDeclarationContext ctx) { }
+	@Override public void enterClassMemberDeclaration(JavaParser.ClassMemberDeclarationContext ctx) { }
+	@Override public void exitClassMemberDeclaration(JavaParser.ClassMemberDeclarationContext ctx) { }
+	@Override public void enterFieldDeclaration(JavaParser.FieldDeclarationContext ctx) {
+		List<String> fieldModifiers = new ArrayList<>();
+		String fieldType = ctx.unannType().getText();
+		CustomClass currentClass = (CustomClass) tracer.peek();
+		boolean isConstant = false;
+
+		if (ctx.fieldModifier() != null)
+			for (JavaParser.FieldModifierContext x : ctx.fieldModifier())
+				fieldModifiers.add(x.getText());
+
+		for (String modifier : fieldModifiers)
+			if (modifier.toLowerCase().equals("final")) {
+				isConstant = true;
+				break;
 			}
-	@Override public void exitVariableDeclarator(Java8Parser.VariableDeclaratorContext ctx) { }
-	@Override public void enterVariableDeclaratorId(Java8Parser.VariableDeclaratorIdContext ctx) { }
-	@Override public void exitVariableDeclaratorId(Java8Parser.VariableDeclaratorIdContext ctx) { }
-	@Override public void enterVariableInitializer(Java8Parser.VariableInitializerContext ctx) { }
-	@Override public void exitVariableInitializer(Java8Parser.VariableInitializerContext ctx) { }
-	@Override public void enterUnannType(Java8Parser.UnannTypeContext ctx) {
-		//System.out.println("Unana-->"+ctx.getParent().getParent().getText());
+
+		for (JavaParser.VariableDeclaratorContext x : ctx.variableDeclaratorList().variableDeclarator()) {
+			String name = x.variableDeclaratorId().Identifier().getText();
+			String value = x.variableInitializer() != null ? x.variableInitializer().getText() : null;
+
+			CustomVariable var = new CustomVariable(name, fieldModifiers, fieldType, value);
+
+			if (isConstant) currentClass.constants.add(var);
+			else currentClass.variables.add(var);
+		}
 	}
-	@Override public void exitUnannType(Java8Parser.UnannTypeContext ctx) { }
-	@Override public void enterUnannPrimitiveType(Java8Parser.UnannPrimitiveTypeContext ctx) { }
-	@Override public void exitUnannPrimitiveType(Java8Parser.UnannPrimitiveTypeContext ctx) { }
-	@Override public void enterUnannReferenceType(Java8Parser.UnannReferenceTypeContext ctx) { }
-	@Override public void exitUnannReferenceType(Java8Parser.UnannReferenceTypeContext ctx) { }
-	@Override public void enterUnannClassOrInterfaceType(Java8Parser.UnannClassOrInterfaceTypeContext ctx) { }
-	@Override public void exitUnannClassOrInterfaceType(Java8Parser.UnannClassOrInterfaceTypeContext ctx) { }
-	@Override public void enterUnannClassType(Java8Parser.UnannClassTypeContext ctx) { }
-	@Override public void exitUnannClassType(Java8Parser.UnannClassTypeContext ctx) { }
-	@Override public void enterUnannClassType_lf_unannClassOrInterfaceType(Java8Parser.UnannClassType_lf_unannClassOrInterfaceTypeContext ctx) { }
-	@Override public void exitUnannClassType_lf_unannClassOrInterfaceType(Java8Parser.UnannClassType_lf_unannClassOrInterfaceTypeContext ctx) { }
-	@Override public void enterUnannClassType_lfno_unannClassOrInterfaceType(Java8Parser.UnannClassType_lfno_unannClassOrInterfaceTypeContext ctx) { }
-	@Override public void exitUnannClassType_lfno_unannClassOrInterfaceType(Java8Parser.UnannClassType_lfno_unannClassOrInterfaceTypeContext ctx) { }
-	@Override public void enterUnannInterfaceType(Java8Parser.UnannInterfaceTypeContext ctx) { }
-	@Override public void exitUnannInterfaceType(Java8Parser.UnannInterfaceTypeContext ctx) { }
-	@Override public void enterUnannInterfaceType_lf_unannClassOrInterfaceType(Java8Parser.UnannInterfaceType_lf_unannClassOrInterfaceTypeContext ctx) { }
-	@Override public void exitUnannInterfaceType_lf_unannClassOrInterfaceType(Java8Parser.UnannInterfaceType_lf_unannClassOrInterfaceTypeContext ctx) { }
-	@Override public void enterUnannInterfaceType_lfno_unannClassOrInterfaceType(Java8Parser.UnannInterfaceType_lfno_unannClassOrInterfaceTypeContext ctx) { }
-	@Override public void exitUnannInterfaceType_lfno_unannClassOrInterfaceType(Java8Parser.UnannInterfaceType_lfno_unannClassOrInterfaceTypeContext ctx) { }
-	@Override public void enterUnannTypeVariable(Java8Parser.UnannTypeVariableContext ctx) { }
-	@Override public void exitUnannTypeVariable(Java8Parser.UnannTypeVariableContext ctx) { }
-	@Override public void enterUnannArrayType(Java8Parser.UnannArrayTypeContext ctx) { }
-	@Override public void exitUnannArrayType(Java8Parser.UnannArrayTypeContext ctx) { }
-	@Override public void enterMethodDeclaration(Java8Parser.MethodDeclarationContext ctx) { }
-	@Override public void exitMethodDeclaration(Java8Parser.MethodDeclarationContext ctx) {
-		methodindex++;
+	@Override public void exitFieldDeclaration(JavaParser.FieldDeclarationContext ctx) { }
+	@Override public void enterFieldModifier(JavaParser.FieldModifierContext ctx) { }
+	@Override public void exitFieldModifier(JavaParser.FieldModifierContext ctx) { }
+	@Override public void enterVariableDeclaratorList(JavaParser.VariableDeclaratorListContext ctx) { }
+	@Override public void exitVariableDeclaratorList(JavaParser.VariableDeclaratorListContext ctx) { }
+	@Override public void enterVariableDeclarator(JavaParser.VariableDeclaratorContext ctx) { }
+	@Override public void exitVariableDeclarator(JavaParser.VariableDeclaratorContext ctx) { }
+	@Override public void enterVariableDeclaratorId(JavaParser.VariableDeclaratorIdContext ctx) { }
+	@Override public void exitVariableDeclaratorId(JavaParser.VariableDeclaratorIdContext ctx) { }
+	@Override public void enterVariableInitializer(JavaParser.VariableInitializerContext ctx) { }
+	@Override public void exitVariableInitializer(JavaParser.VariableInitializerContext ctx) { }
+	@Override public void enterUnannType(JavaParser.UnannTypeContext ctx) { }
+	@Override public void exitUnannType(JavaParser.UnannTypeContext ctx) { }
+	@Override public void enterUnannPrimitiveType(JavaParser.UnannPrimitiveTypeContext ctx) { }
+	@Override public void exitUnannPrimitiveType(JavaParser.UnannPrimitiveTypeContext ctx) { }
+	@Override public void enterUnannReferenceType(JavaParser.UnannReferenceTypeContext ctx) { }
+	@Override public void exitUnannReferenceType(JavaParser.UnannReferenceTypeContext ctx) { }
+	@Override public void enterUnannClassOrInterfaceType(JavaParser.UnannClassOrInterfaceTypeContext ctx) { }
+	@Override public void exitUnannClassOrInterfaceType(JavaParser.UnannClassOrInterfaceTypeContext ctx) { }
+	@Override public void enterUnannClassType(JavaParser.UnannClassTypeContext ctx) { }
+	@Override public void exitUnannClassType(JavaParser.UnannClassTypeContext ctx) { }
+	@Override public void enterUnannClassType_lf_unannClassOrInterfaceType(JavaParser.UnannClassType_lf_unannClassOrInterfaceTypeContext ctx) { }
+	@Override public void exitUnannClassType_lf_unannClassOrInterfaceType(JavaParser.UnannClassType_lf_unannClassOrInterfaceTypeContext ctx) { }
+	@Override public void enterUnannClassType_lfno_unannClassOrInterfaceType(JavaParser.UnannClassType_lfno_unannClassOrInterfaceTypeContext ctx) { }
+	@Override public void exitUnannClassType_lfno_unannClassOrInterfaceType(JavaParser.UnannClassType_lfno_unannClassOrInterfaceTypeContext ctx) { }
+	@Override public void enterUnannInterfaceType(JavaParser.UnannInterfaceTypeContext ctx) { }
+	@Override public void exitUnannInterfaceType(JavaParser.UnannInterfaceTypeContext ctx) { }
+	@Override public void enterUnannInterfaceType_lf_unannClassOrInterfaceType(JavaParser.UnannInterfaceType_lf_unannClassOrInterfaceTypeContext ctx) { }
+	@Override public void exitUnannInterfaceType_lf_unannClassOrInterfaceType(JavaParser.UnannInterfaceType_lf_unannClassOrInterfaceTypeContext ctx) { }
+	@Override public void enterUnannInterfaceType_lfno_unannClassOrInterfaceType(JavaParser.UnannInterfaceType_lfno_unannClassOrInterfaceTypeContext ctx) { }
+	@Override public void exitUnannInterfaceType_lfno_unannClassOrInterfaceType(JavaParser.UnannInterfaceType_lfno_unannClassOrInterfaceTypeContext ctx) { }
+	@Override public void enterUnannTypeVariable(JavaParser.UnannTypeVariableContext ctx) { }
+	@Override public void exitUnannTypeVariable(JavaParser.UnannTypeVariableContext ctx) { }
+	@Override public void enterUnannArrayType(JavaParser.UnannArrayTypeContext ctx) { }
+	@Override public void exitUnannArrayType(JavaParser.UnannArrayTypeContext ctx) { }
+	@Override public void enterMethodDeclaration(JavaParser.MethodDeclarationContext ctx) {
+		List<String> methodModifiers = new ArrayList<>();
+		List<String> methodExceptions = new ArrayList<>();
+		List<CustomVariable> methodParameters = new ArrayList<>();
+		String name = ctx.methodHeader().methodDeclarator().Identifier().getText();
+		String result = ctx.methodHeader().result().getText();
+
+		if (ctx.methodModifier() != null)
+			for (JavaParser.MethodModifierContext x : ctx.methodModifier())
+				methodModifiers.add(x.getText());
+
+		if (ctx.methodHeader().throws_() != null)
+			for (JavaParser.ExceptionTypeContext x : ctx.methodHeader().throws_().exceptionTypeList().exceptionType())
+				methodExceptions.add(x.getText());
+
+		if (ctx.methodHeader().methodDeclarator().formalParameterList() != null) {
+			/** Parameters **/
+			if (ctx.methodHeader().methodDeclarator().formalParameterList().formalParameters() != null) {
+				for (JavaParser.FormalParameterContext x : ctx.methodHeader().methodDeclarator().formalParameterList().formalParameters().formalParameter()) {
+					List<String> parameterModifiers = new ArrayList<>();
+					String parameterName = x.variableDeclaratorId().Identifier().getText();
+					String type = x.unannType().getText();
+
+					if (x.variableModifier() != null)
+						for (JavaParser.VariableModifierContext y : x.variableModifier())
+							parameterModifiers.add(y.getText());
+
+					CustomVariable parameter = new CustomVariable(parameterName, parameterModifiers, type, null);
+					methodParameters.add(parameter);
+				}
+			}
+
+			/** Last Parameter **/
+			JavaParser.LastFormalParameterContext lastParameter = ctx.methodHeader().methodDeclarator().formalParameterList().lastFormalParameter();
+			CustomVariable parameter;
+			List<String> modifiers = new ArrayList<>();
+			String parameterName, type;
+			if (lastParameter.formalParameter() != null) {
+				parameterName = lastParameter.formalParameter().variableDeclaratorId().Identifier().getText();
+				type = lastParameter.formalParameter().unannType().getText();
+
+				if (lastParameter.formalParameter().variableModifier() != null)
+					for (JavaParser.VariableModifierContext x : lastParameter.formalParameter().variableModifier())
+						modifiers.add(x.getText());
+			} else {
+				parameterName = lastParameter.variableDeclaratorId().Identifier().getText();
+				type = lastParameter.unannType().getText();
+				if (lastParameter.variableModifier() != null)
+					for (JavaParser.VariableModifierContext x : lastParameter.variableModifier())
+						modifiers.add(x.getText());
+			}
+			parameter = new CustomVariable(name, modifiers, type, null);
+			methodParameters.add(parameter);
+		}
+
+		CustomMethod currentMethod = new CustomMethod(name, methodModifiers, result, methodParameters, methodExceptions);
+		CustomClass currentClass = (CustomClass) tracer.peek();
+		currentClass.methods.add(currentMethod);
+		tracer.push((Object) currentMethod);
 	}
-	@Override public void enterMethodModifier(Java8Parser.MethodModifierContext ctx) { }
-	@Override public void exitMethodModifier(Java8Parser.MethodModifierContext ctx) { }
-	@Override public void enterMethodHeader(Java8Parser.MethodHeaderContext ctx) { }
-	@Override public void exitMethodHeader(Java8Parser.MethodHeaderContext ctx) { }
-	@Override public void enterResult(Java8Parser.ResultContext ctx) { }
-	@Override public void exitResult(Java8Parser.ResultContext ctx) { }
-	@Override public void enterMethodDeclarator(Java8Parser.MethodDeclaratorContext ctx) { }
-	@Override public void exitMethodDeclarator(Java8Parser.MethodDeclaratorContext ctx) { }
-	@Override public void enterFormalParameterList(Java8Parser.FormalParameterListContext ctx) { }
-	@Override public void exitFormalParameterList(Java8Parser.FormalParameterListContext ctx) { }
-	@Override public void enterFormalParameters(Java8Parser.FormalParametersContext ctx) { }
-	@Override public void exitFormalParameters(Java8Parser.FormalParametersContext ctx) { }
-	@Override public void enterFormalParameter(Java8Parser.FormalParameterContext ctx) { }
-	@Override public void exitFormalParameter(Java8Parser.FormalParameterContext ctx) { }
-	@Override public void enterVariableModifier(Java8Parser.VariableModifierContext ctx) { }
-	@Override public void exitVariableModifier(Java8Parser.VariableModifierContext ctx) { }
-	@Override public void enterLastFormalParameter(Java8Parser.LastFormalParameterContext ctx) { }
-	@Override public void exitLastFormalParameter(Java8Parser.LastFormalParameterContext ctx) { }
-	@Override public void enterReceiverParameter(Java8Parser.ReceiverParameterContext ctx) { }
-	@Override public void exitReceiverParameter(Java8Parser.ReceiverParameterContext ctx) { }
-	@Override public void enterThrows_(Java8Parser.Throws_Context ctx) { }
-	@Override public void exitThrows_(Java8Parser.Throws_Context ctx) { }
-	@Override public void enterExceptionTypeList(Java8Parser.ExceptionTypeListContext ctx) { }
-	@Override public void exitExceptionTypeList(Java8Parser.ExceptionTypeListContext ctx) { }
-	@Override public void enterExceptionType(Java8Parser.ExceptionTypeContext ctx) { }
-	@Override public void exitExceptionType(Java8Parser.ExceptionTypeContext ctx) { }
-	@Override public void enterMethodBody(Java8Parser.MethodBodyContext ctx) { }
-	@Override public void exitMethodBody(Java8Parser.MethodBodyContext ctx) { }
-	@Override public void enterInstanceInitializer(Java8Parser.InstanceInitializerContext ctx) { }
-	@Override public void exitInstanceInitializer(Java8Parser.InstanceInitializerContext ctx) { }
-	@Override public void enterStaticInitializer(Java8Parser.StaticInitializerContext ctx) { }
-	@Override public void exitStaticInitializer(Java8Parser.StaticInitializerContext ctx) { }
-	@Override public void enterConstructorDeclaration(Java8Parser.ConstructorDeclarationContext ctx) { }
-	@Override public void exitConstructorDeclaration(Java8Parser.ConstructorDeclarationContext ctx) { }
-	@Override public void enterConstructorModifier(Java8Parser.ConstructorModifierContext ctx) { }
-	@Override public void exitConstructorModifier(Java8Parser.ConstructorModifierContext ctx) { }
-	@Override public void enterConstructorDeclarator(Java8Parser.ConstructorDeclaratorContext ctx) { }
-	@Override public void exitConstructorDeclarator(Java8Parser.ConstructorDeclaratorContext ctx) { }
-	@Override public void enterSimpleTypeName(Java8Parser.SimpleTypeNameContext ctx) { }
-	@Override public void exitSimpleTypeName(Java8Parser.SimpleTypeNameContext ctx) { }
-	@Override public void enterConstructorBody(Java8Parser.ConstructorBodyContext ctx) { }
-	@Override public void exitConstructorBody(Java8Parser.ConstructorBodyContext ctx) { }
-	@Override public void enterExplicitConstructorInvocation(Java8Parser.ExplicitConstructorInvocationContext ctx) { }
-	@Override public void exitExplicitConstructorInvocation(Java8Parser.ExplicitConstructorInvocationContext ctx) { }
-	@Override public void enterEnumDeclaration(Java8Parser.EnumDeclarationContext ctx) { }
-	@Override public void exitEnumDeclaration(Java8Parser.EnumDeclarationContext ctx) { }
-	@Override public void enterEnumBody(Java8Parser.EnumBodyContext ctx) { }
-	@Override public void exitEnumBody(Java8Parser.EnumBodyContext ctx) { }
-	@Override public void enterEnumConstantList(Java8Parser.EnumConstantListContext ctx) { }
-	@Override public void exitEnumConstantList(Java8Parser.EnumConstantListContext ctx) { }
-	@Override public void enterEnumConstant(Java8Parser.EnumConstantContext ctx) { }
-	@Override public void exitEnumConstant(Java8Parser.EnumConstantContext ctx) { }
-	@Override public void enterEnumConstantModifier(Java8Parser.EnumConstantModifierContext ctx) { }
-	@Override public void exitEnumConstantModifier(Java8Parser.EnumConstantModifierContext ctx) { }
-	@Override public void enterEnumBodyDeclarations(Java8Parser.EnumBodyDeclarationsContext ctx) { }
-	@Override public void exitEnumBodyDeclarations(Java8Parser.EnumBodyDeclarationsContext ctx) { }
-	@Override public void enterInterfaceDeclaration(Java8Parser.InterfaceDeclarationContext ctx) { }
-	@Override public void exitInterfaceDeclaration(Java8Parser.InterfaceDeclarationContext ctx) { }
-	@Override public void enterNormalInterfaceDeclaration(Java8Parser.NormalInterfaceDeclarationContext ctx) { }
-	@Override public void exitNormalInterfaceDeclaration(Java8Parser.NormalInterfaceDeclarationContext ctx) { }
-	@Override public void enterInterfaceModifier(Java8Parser.InterfaceModifierContext ctx) { }
-	@Override public void exitInterfaceModifier(Java8Parser.InterfaceModifierContext ctx) { }
-	@Override public void enterExtendsInterfaces(Java8Parser.ExtendsInterfacesContext ctx) { }
-	@Override public void exitExtendsInterfaces(Java8Parser.ExtendsInterfacesContext ctx) { }
-	@Override public void enterInterfaceBody(Java8Parser.InterfaceBodyContext ctx) { }
-	@Override public void exitInterfaceBody(Java8Parser.InterfaceBodyContext ctx) { }
-	@Override public void enterInterfaceMemberDeclaration(Java8Parser.InterfaceMemberDeclarationContext ctx) { }
-	@Override public void exitInterfaceMemberDeclaration(Java8Parser.InterfaceMemberDeclarationContext ctx) { }
-	@Override public void enterConstantDeclaration(Java8Parser.ConstantDeclarationContext ctx) {
-		CustomVariable currentconstant=new CustomVariable();
-		currentconstant.name=ctx.variableDeclaratorList().getText();
-		//classes.get(classindex).classModifiers.add(ctx.getText());
-		System.out.println("Constante--->"+ctx.getParent().getRuleContext().getText());
+	@Override public void exitMethodDeclaration(JavaParser.MethodDeclarationContext ctx) {
+		tracer.pop();
 	}
-	@Override public void exitConstantDeclaration(Java8Parser.ConstantDeclarationContext ctx) { }
-	@Override public void enterConstantModifier(Java8Parser.ConstantModifierContext ctx) { }
-	@Override public void exitConstantModifier(Java8Parser.ConstantModifierContext ctx) { }
-	@Override public void enterInterfaceMethodDeclaration(Java8Parser.InterfaceMethodDeclarationContext ctx) { }
-	@Override public void exitInterfaceMethodDeclaration(Java8Parser.InterfaceMethodDeclarationContext ctx) { }
-	@Override public void enterInterfaceMethodModifier(Java8Parser.InterfaceMethodModifierContext ctx) { }
-	@Override public void exitInterfaceMethodModifier(Java8Parser.InterfaceMethodModifierContext ctx) { }
-	@Override public void enterAnnotationTypeDeclaration(Java8Parser.AnnotationTypeDeclarationContext ctx) { }
-	@Override public void exitAnnotationTypeDeclaration(Java8Parser.AnnotationTypeDeclarationContext ctx) { }
-	@Override public void enterAnnotationTypeBody(Java8Parser.AnnotationTypeBodyContext ctx) { }
-	@Override public void exitAnnotationTypeBody(Java8Parser.AnnotationTypeBodyContext ctx) { }
-	@Override public void enterAnnotationTypeMemberDeclaration(Java8Parser.AnnotationTypeMemberDeclarationContext ctx) { }
-	@Override public void exitAnnotationTypeMemberDeclaration(Java8Parser.AnnotationTypeMemberDeclarationContext ctx) { }
-	@Override public void enterAnnotationTypeElementDeclaration(Java8Parser.AnnotationTypeElementDeclarationContext ctx) { }
-	@Override public void exitAnnotationTypeElementDeclaration(Java8Parser.AnnotationTypeElementDeclarationContext ctx) { }
-	@Override public void enterAnnotationTypeElementModifier(Java8Parser.AnnotationTypeElementModifierContext ctx) { }
-	@Override public void exitAnnotationTypeElementModifier(Java8Parser.AnnotationTypeElementModifierContext ctx) { }
-	@Override public void enterDefaultValue(Java8Parser.DefaultValueContext ctx) { }
-	@Override public void exitDefaultValue(Java8Parser.DefaultValueContext ctx) { }
-	@Override public void enterAnnotation(Java8Parser.AnnotationContext ctx) { }
-	@Override public void exitAnnotation(Java8Parser.AnnotationContext ctx) { }
-	@Override public void enterNormalAnnotation(Java8Parser.NormalAnnotationContext ctx) { }
-	@Override public void exitNormalAnnotation(Java8Parser.NormalAnnotationContext ctx) { }
-	@Override public void enterElementValuePairList(Java8Parser.ElementValuePairListContext ctx) { }
-	@Override public void exitElementValuePairList(Java8Parser.ElementValuePairListContext ctx) { }
-	@Override public void enterElementValuePair(Java8Parser.ElementValuePairContext ctx) { }
-	@Override public void exitElementValuePair(Java8Parser.ElementValuePairContext ctx) { }
-	@Override public void enterElementValue(Java8Parser.ElementValueContext ctx) { }
-	@Override public void exitElementValue(Java8Parser.ElementValueContext ctx) { }
-	@Override public void enterElementValueArrayInitializer(Java8Parser.ElementValueArrayInitializerContext ctx) { }
-	@Override public void exitElementValueArrayInitializer(Java8Parser.ElementValueArrayInitializerContext ctx) { }
-	@Override public void enterElementValueList(Java8Parser.ElementValueListContext ctx) { }
-	@Override public void exitElementValueList(Java8Parser.ElementValueListContext ctx) { }
-	@Override public void enterMarkerAnnotation(Java8Parser.MarkerAnnotationContext ctx) { }
-	@Override public void exitMarkerAnnotation(Java8Parser.MarkerAnnotationContext ctx) { }
-	@Override public void enterSingleElementAnnotation(Java8Parser.SingleElementAnnotationContext ctx) { }
-	@Override public void exitSingleElementAnnotation(Java8Parser.SingleElementAnnotationContext ctx) { }
-	@Override public void enterArrayInitializer(Java8Parser.ArrayInitializerContext ctx) { }
-	@Override public void exitArrayInitializer(Java8Parser.ArrayInitializerContext ctx) { }
-	@Override public void enterVariableInitializerList(Java8Parser.VariableInitializerListContext ctx) { }
-	@Override public void exitVariableInitializerList(Java8Parser.VariableInitializerListContext ctx) { }
-	@Override public void enterBlock(Java8Parser.BlockContext ctx) { }
-	@Override public void exitBlock(Java8Parser.BlockContext ctx) { }
-	@Override public void enterBlockStatements(Java8Parser.BlockStatementsContext ctx) { }
-	@Override public void exitBlockStatements(Java8Parser.BlockStatementsContext ctx) { }
-	@Override public void enterBlockStatement(Java8Parser.BlockStatementContext ctx) { }
-	@Override public void exitBlockStatement(Java8Parser.BlockStatementContext ctx) { }
-	@Override public void enterLocalVariableDeclarationStatement(Java8Parser.LocalVariableDeclarationStatementContext ctx) { }
-	@Override public void exitLocalVariableDeclarationStatement(Java8Parser.LocalVariableDeclarationStatementContext ctx) { }
-	@Override public void enterLocalVariableDeclaration(Java8Parser.LocalVariableDeclarationContext ctx) { 
-		//System.out.println(ctx.getText()+"-->"+ctx.start.getStopIndex()+"-->"+ctx.stop.getText());
+	@Override public void enterMethodModifier(JavaParser.MethodModifierContext ctx) { }
+	@Override public void exitMethodModifier(JavaParser.MethodModifierContext ctx) { }
+	@Override public void enterMethodHeader(JavaParser.MethodHeaderContext ctx) { }
+	@Override public void exitMethodHeader(JavaParser.MethodHeaderContext ctx) { }
+	@Override public void enterResult(JavaParser.ResultContext ctx) { }
+	@Override public void exitResult(JavaParser.ResultContext ctx) { }
+	@Override public void enterMethodDeclarator(JavaParser.MethodDeclaratorContext ctx) { }
+	@Override public void exitMethodDeclarator(JavaParser.MethodDeclaratorContext ctx) { }
+	@Override public void enterFormalParameterList(JavaParser.FormalParameterListContext ctx) { }
+	@Override public void exitFormalParameterList(JavaParser.FormalParameterListContext ctx) { }
+	@Override public void enterFormalParameters(JavaParser.FormalParametersContext ctx) { }
+	@Override public void exitFormalParameters(JavaParser.FormalParametersContext ctx) { }
+	@Override public void enterFormalParameter(JavaParser.FormalParameterContext ctx) { }
+	@Override public void exitFormalParameter(JavaParser.FormalParameterContext ctx) { }
+	@Override public void enterVariableModifier(JavaParser.VariableModifierContext ctx) { }
+	@Override public void exitVariableModifier(JavaParser.VariableModifierContext ctx) { }
+	@Override public void enterLastFormalParameter(JavaParser.LastFormalParameterContext ctx) { }
+	@Override public void exitLastFormalParameter(JavaParser.LastFormalParameterContext ctx) { }
+	@Override public void enterReceiverParameter(JavaParser.ReceiverParameterContext ctx) { }
+	@Override public void exitReceiverParameter(JavaParser.ReceiverParameterContext ctx) { }
+	@Override public void enterThrows_(JavaParser.Throws_Context ctx) { }
+	@Override public void exitThrows_(JavaParser.Throws_Context ctx) { }
+	@Override public void enterExceptionTypeList(JavaParser.ExceptionTypeListContext ctx) { }
+	@Override public void exitExceptionTypeList(JavaParser.ExceptionTypeListContext ctx) { }
+	@Override public void enterExceptionType(JavaParser.ExceptionTypeContext ctx) { }
+	@Override public void exitExceptionType(JavaParser.ExceptionTypeContext ctx) { }
+	@Override public void enterMethodBody(JavaParser.MethodBodyContext ctx) { }
+	@Override public void exitMethodBody(JavaParser.MethodBodyContext ctx) { }
+	@Override public void enterInstanceInitializer(JavaParser.InstanceInitializerContext ctx) { }
+	@Override public void exitInstanceInitializer(JavaParser.InstanceInitializerContext ctx) { }
+	@Override public void enterStaticInitializer(JavaParser.StaticInitializerContext ctx) { }
+	@Override public void exitStaticInitializer(JavaParser.StaticInitializerContext ctx) { }
+	@Override public void enterConstructorDeclaration(JavaParser.ConstructorDeclarationContext ctx) {
+		List<String> modifiers = new ArrayList<>();
+		List<CustomVariable> parameters = new ArrayList<>();
+		List<String> exceptions = new ArrayList<>();
+		String name = ctx.constructorDeclarator().simpleTypeName().Identifier().getText();
+
+		if (ctx.constructorModifier() != null)
+			for (JavaParser.ConstructorModifierContext x : ctx.constructorModifier())
+				modifiers.add(x.getText());
+
+		if (ctx.throws_() != null)
+			for (JavaParser.ExceptionTypeContext x : ctx.throws_().exceptionTypeList().exceptionType())
+				exceptions.add(x.getText());
+
+		if (ctx.constructorDeclarator().formalParameterList() != null) {
+			/** Parameters **/
+			if (ctx.constructorDeclarator().formalParameterList().formalParameters() != null) {
+				for (JavaParser.FormalParameterContext x : ctx.constructorDeclarator().formalParameterList().formalParameters().formalParameter()) {
+					List<String> parameterModifiers = new ArrayList<>();
+					String parameterName = x.variableDeclaratorId().Identifier().getText();
+					String type = x.unannType().getText();
+
+					if (x.variableModifier() != null)
+						for (JavaParser.VariableModifierContext y : x.variableModifier())
+							parameterModifiers.add(y.getText());
+
+					CustomVariable parameter = new CustomVariable(parameterName, parameterModifiers, type, null);
+					parameters.add(parameter);
+				}
+			}
+		}
+		CustomMethod currentConstructor = new CustomMethod(name, modifiers, null, parameters, exceptions);
+		CustomClass currentClass = (CustomClass) tracer.peek();
+		currentClass.constructors.add(currentConstructor);
+		tracer.push((Object) currentConstructor);
 	}
-	@Override public void exitLocalVariableDeclaration(Java8Parser.LocalVariableDeclarationContext ctx) { }
-	@Override public void enterStatement(Java8Parser.StatementContext ctx) { }
-	@Override public void exitStatement(Java8Parser.StatementContext ctx) { }
-	@Override public void enterStatementNoShortIf(Java8Parser.StatementNoShortIfContext ctx) { }
-	@Override public void exitStatementNoShortIf(Java8Parser.StatementNoShortIfContext ctx) { }
-	@Override public void enterStatementWithoutTrailingSubstatement(Java8Parser.StatementWithoutTrailingSubstatementContext ctx) { }
-	@Override public void exitStatementWithoutTrailingSubstatement(Java8Parser.StatementWithoutTrailingSubstatementContext ctx) { }
-	@Override public void enterEmptyStatement(Java8Parser.EmptyStatementContext ctx) { }
-	@Override public void exitEmptyStatement(Java8Parser.EmptyStatementContext ctx) { }
-	@Override public void enterLabeledStatement(Java8Parser.LabeledStatementContext ctx) { }
-	@Override public void exitLabeledStatement(Java8Parser.LabeledStatementContext ctx) { }
-	@Override public void enterLabeledStatementNoShortIf(Java8Parser.LabeledStatementNoShortIfContext ctx) { }
-	@Override public void exitLabeledStatementNoShortIf(Java8Parser.LabeledStatementNoShortIfContext ctx) { }
-	@Override public void enterExpressionStatement(Java8Parser.ExpressionStatementContext ctx) { }
-	@Override public void exitExpressionStatement(Java8Parser.ExpressionStatementContext ctx) { }
-	@Override public void enterStatementExpression(Java8Parser.StatementExpressionContext ctx) { }
-	@Override public void exitStatementExpression(Java8Parser.StatementExpressionContext ctx) { }
-	@Override public void enterIfThenStatement(Java8Parser.IfThenStatementContext ctx) { }
-	@Override public void exitIfThenStatement(Java8Parser.IfThenStatementContext ctx) { }
-	@Override public void enterIfThenElseStatement(Java8Parser.IfThenElseStatementContext ctx) { }
-	@Override public void exitIfThenElseStatement(Java8Parser.IfThenElseStatementContext ctx) { }
-	@Override public void enterIfThenElseStatementNoShortIf(Java8Parser.IfThenElseStatementNoShortIfContext ctx) { }
-	@Override public void exitIfThenElseStatementNoShortIf(Java8Parser.IfThenElseStatementNoShortIfContext ctx) { }
-	@Override public void enterAssertStatement(Java8Parser.AssertStatementContext ctx) { }
-	@Override public void exitAssertStatement(Java8Parser.AssertStatementContext ctx) { }
-	@Override public void enterSwitchStatement(Java8Parser.SwitchStatementContext ctx) { }
-	@Override public void exitSwitchStatement(Java8Parser.SwitchStatementContext ctx) { }
-	@Override public void enterSwitchBlock(Java8Parser.SwitchBlockContext ctx) { }
-	@Override public void exitSwitchBlock(Java8Parser.SwitchBlockContext ctx) { }
-	@Override public void enterSwitchBlockStatementGroup(Java8Parser.SwitchBlockStatementGroupContext ctx) { }
-	@Override public void exitSwitchBlockStatementGroup(Java8Parser.SwitchBlockStatementGroupContext ctx) { }
-	@Override public void enterSwitchLabels(Java8Parser.SwitchLabelsContext ctx) { }
-	@Override public void exitSwitchLabels(Java8Parser.SwitchLabelsContext ctx) { }
-	@Override public void enterSwitchLabel(Java8Parser.SwitchLabelContext ctx) { }
-	@Override public void exitSwitchLabel(Java8Parser.SwitchLabelContext ctx) { }
-	@Override public void enterEnumConstantName(Java8Parser.EnumConstantNameContext ctx) { }
-	@Override public void exitEnumConstantName(Java8Parser.EnumConstantNameContext ctx) { }
-	@Override public void enterWhileStatement(Java8Parser.WhileStatementContext ctx) { }
-	@Override public void exitWhileStatement(Java8Parser.WhileStatementContext ctx) { }
-	@Override public void enterWhileStatementNoShortIf(Java8Parser.WhileStatementNoShortIfContext ctx) { }
-	@Override public void exitWhileStatementNoShortIf(Java8Parser.WhileStatementNoShortIfContext ctx) { }
-	@Override public void enterDoStatement(Java8Parser.DoStatementContext ctx) { }
-	@Override public void exitDoStatement(Java8Parser.DoStatementContext ctx) { }
-	@Override public void enterForStatement(Java8Parser.ForStatementContext ctx) { }
-	@Override public void exitForStatement(Java8Parser.ForStatementContext ctx) { }
-	@Override public void enterForStatementNoShortIf(Java8Parser.ForStatementNoShortIfContext ctx) { }
-	@Override public void exitForStatementNoShortIf(Java8Parser.ForStatementNoShortIfContext ctx) { }
-	@Override public void enterBasicForStatement(Java8Parser.BasicForStatementContext ctx) { }
-	@Override public void exitBasicForStatement(Java8Parser.BasicForStatementContext ctx) { }
-	@Override public void enterBasicForStatementNoShortIf(Java8Parser.BasicForStatementNoShortIfContext ctx) { }
-	@Override public void exitBasicForStatementNoShortIf(Java8Parser.BasicForStatementNoShortIfContext ctx) { }
-	@Override public void enterForInit(Java8Parser.ForInitContext ctx) { }
-	@Override public void exitForInit(Java8Parser.ForInitContext ctx) { }
-	@Override public void enterForUpdate(Java8Parser.ForUpdateContext ctx) { }
-	@Override public void exitForUpdate(Java8Parser.ForUpdateContext ctx) { }
-	@Override public void enterStatementExpressionList(Java8Parser.StatementExpressionListContext ctx) { }
-	@Override public void exitStatementExpressionList(Java8Parser.StatementExpressionListContext ctx) { }
-	@Override public void enterEnhancedForStatement(Java8Parser.EnhancedForStatementContext ctx) { }
-	@Override public void exitEnhancedForStatement(Java8Parser.EnhancedForStatementContext ctx) { }
-	@Override public void enterEnhancedForStatementNoShortIf(Java8Parser.EnhancedForStatementNoShortIfContext ctx) { }
-	@Override public void exitEnhancedForStatementNoShortIf(Java8Parser.EnhancedForStatementNoShortIfContext ctx) { }
-	@Override public void enterBreakStatement(Java8Parser.BreakStatementContext ctx) { }
-	@Override public void exitBreakStatement(Java8Parser.BreakStatementContext ctx) { }
-	@Override public void enterContinueStatement(Java8Parser.ContinueStatementContext ctx) { }
-	@Override public void exitContinueStatement(Java8Parser.ContinueStatementContext ctx) { }
-	@Override public void enterReturnStatement(Java8Parser.ReturnStatementContext ctx) { }
-	@Override public void exitReturnStatement(Java8Parser.ReturnStatementContext ctx) { }
-	@Override public void enterThrowStatement(Java8Parser.ThrowStatementContext ctx) { }
-	@Override public void exitThrowStatement(Java8Parser.ThrowStatementContext ctx) { }
-	@Override public void enterSynchronizedStatement(Java8Parser.SynchronizedStatementContext ctx) { }
-	@Override public void exitSynchronizedStatement(Java8Parser.SynchronizedStatementContext ctx) { }
-	@Override public void enterTryStatement(Java8Parser.TryStatementContext ctx) { }
-	@Override public void exitTryStatement(Java8Parser.TryStatementContext ctx) { }
-	@Override public void enterCatches(Java8Parser.CatchesContext ctx) { }
-	@Override public void exitCatches(Java8Parser.CatchesContext ctx) { }
-	@Override public void enterCatchClause(Java8Parser.CatchClauseContext ctx) { }
-	@Override public void exitCatchClause(Java8Parser.CatchClauseContext ctx) { }
-	@Override public void enterCatchFormalParameter(Java8Parser.CatchFormalParameterContext ctx) { }
-	@Override public void exitCatchFormalParameter(Java8Parser.CatchFormalParameterContext ctx) { }
-	@Override public void enterCatchType(Java8Parser.CatchTypeContext ctx) { }
-	@Override public void exitCatchType(Java8Parser.CatchTypeContext ctx) { }
-	@Override public void enterFinally_(Java8Parser.Finally_Context ctx) { }
-	@Override public void exitFinally_(Java8Parser.Finally_Context ctx) { }
-	@Override public void enterTryWithResourcesStatement(Java8Parser.TryWithResourcesStatementContext ctx) { }
-	@Override public void exitTryWithResourcesStatement(Java8Parser.TryWithResourcesStatementContext ctx) { }
-	@Override public void enterResourceSpecification(Java8Parser.ResourceSpecificationContext ctx) { }
-	@Override public void exitResourceSpecification(Java8Parser.ResourceSpecificationContext ctx) { }
-	@Override public void enterResourceList(Java8Parser.ResourceListContext ctx) { }
-	@Override public void exitResourceList(Java8Parser.ResourceListContext ctx) { }
-	@Override public void enterResource(Java8Parser.ResourceContext ctx) { }
-	@Override public void exitResource(Java8Parser.ResourceContext ctx) { }
-	@Override public void enterPrimary(Java8Parser.PrimaryContext ctx) { }
-	@Override public void exitPrimary(Java8Parser.PrimaryContext ctx) { }
-	@Override public void enterPrimaryNoNewArray(Java8Parser.PrimaryNoNewArrayContext ctx) { }
-	@Override public void exitPrimaryNoNewArray(Java8Parser.PrimaryNoNewArrayContext ctx) { }
-	@Override public void enterPrimaryNoNewArray_lf_arrayAccess(Java8Parser.PrimaryNoNewArray_lf_arrayAccessContext ctx) { }
-	@Override public void exitPrimaryNoNewArray_lf_arrayAccess(Java8Parser.PrimaryNoNewArray_lf_arrayAccessContext ctx) { }
-	@Override public void enterPrimaryNoNewArray_lfno_arrayAccess(Java8Parser.PrimaryNoNewArray_lfno_arrayAccessContext ctx) { }
-	@Override public void exitPrimaryNoNewArray_lfno_arrayAccess(Java8Parser.PrimaryNoNewArray_lfno_arrayAccessContext ctx) { }
-	@Override public void enterPrimaryNoNewArray_lf_primary(Java8Parser.PrimaryNoNewArray_lf_primaryContext ctx) { }
-	@Override public void exitPrimaryNoNewArray_lf_primary(Java8Parser.PrimaryNoNewArray_lf_primaryContext ctx) { }
-	@Override public void enterPrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(Java8Parser.PrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primaryContext ctx) { }
-	@Override public void exitPrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(Java8Parser.PrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primaryContext ctx) { }
-	@Override public void enterPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(Java8Parser.PrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primaryContext ctx) { }
-	@Override public void exitPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(Java8Parser.PrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primaryContext ctx) { }
-	@Override public void enterPrimaryNoNewArray_lfno_primary(Java8Parser.PrimaryNoNewArray_lfno_primaryContext ctx) { }
-	@Override public void exitPrimaryNoNewArray_lfno_primary(Java8Parser.PrimaryNoNewArray_lfno_primaryContext ctx) { }
-	@Override public void enterPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(Java8Parser.PrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primaryContext ctx) { }
-	@Override public void exitPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(Java8Parser.PrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primaryContext ctx) { }
-	@Override public void enterPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(Java8Parser.PrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primaryContext ctx) { }
-	@Override public void exitPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(Java8Parser.PrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primaryContext ctx) { }
-	@Override public void enterClassInstanceCreationExpression(Java8Parser.ClassInstanceCreationExpressionContext ctx) { }
-	@Override public void exitClassInstanceCreationExpression(Java8Parser.ClassInstanceCreationExpressionContext ctx) { }
-	@Override public void enterClassInstanceCreationExpression_lf_primary(Java8Parser.ClassInstanceCreationExpression_lf_primaryContext ctx) { }
-	@Override public void exitClassInstanceCreationExpression_lf_primary(Java8Parser.ClassInstanceCreationExpression_lf_primaryContext ctx) { }
-	@Override public void enterClassInstanceCreationExpression_lfno_primary(Java8Parser.ClassInstanceCreationExpression_lfno_primaryContext ctx) { }
-	@Override public void exitClassInstanceCreationExpression_lfno_primary(Java8Parser.ClassInstanceCreationExpression_lfno_primaryContext ctx) { }
-	@Override public void enterTypeArgumentsOrDiamond(Java8Parser.TypeArgumentsOrDiamondContext ctx) { }
-	@Override public void exitTypeArgumentsOrDiamond(Java8Parser.TypeArgumentsOrDiamondContext ctx) { }
-	@Override public void enterFieldAccess(Java8Parser.FieldAccessContext ctx) { }
-	@Override public void exitFieldAccess(Java8Parser.FieldAccessContext ctx) { }
-	@Override public void enterFieldAccess_lf_primary(Java8Parser.FieldAccess_lf_primaryContext ctx) { }
-	@Override public void exitFieldAccess_lf_primary(Java8Parser.FieldAccess_lf_primaryContext ctx) { }
-	@Override public void enterFieldAccess_lfno_primary(Java8Parser.FieldAccess_lfno_primaryContext ctx) { }
-	@Override public void exitFieldAccess_lfno_primary(Java8Parser.FieldAccess_lfno_primaryContext ctx) { }
-	@Override public void enterArrayAccess(Java8Parser.ArrayAccessContext ctx) { }
-	@Override public void exitArrayAccess(Java8Parser.ArrayAccessContext ctx) { }
-	@Override public void enterArrayAccess_lf_primary(Java8Parser.ArrayAccess_lf_primaryContext ctx) { }
-	@Override public void exitArrayAccess_lf_primary(Java8Parser.ArrayAccess_lf_primaryContext ctx) { }
-	@Override public void enterArrayAccess_lfno_primary(Java8Parser.ArrayAccess_lfno_primaryContext ctx) { }
-	@Override public void exitArrayAccess_lfno_primary(Java8Parser.ArrayAccess_lfno_primaryContext ctx) { }
-	@Override public void enterMethodInvocation(Java8Parser.MethodInvocationContext ctx) { }
-	@Override public void exitMethodInvocation(Java8Parser.MethodInvocationContext ctx) { }
-	@Override public void enterMethodInvocation_lf_primary(Java8Parser.MethodInvocation_lf_primaryContext ctx) { }
-	@Override public void exitMethodInvocation_lf_primary(Java8Parser.MethodInvocation_lf_primaryContext ctx) { }
-	@Override public void enterMethodInvocation_lfno_primary(Java8Parser.MethodInvocation_lfno_primaryContext ctx) { }
-	@Override public void exitMethodInvocation_lfno_primary(Java8Parser.MethodInvocation_lfno_primaryContext ctx) { }
-	@Override public void enterArgumentList(Java8Parser.ArgumentListContext ctx) { }
-	@Override public void exitArgumentList(Java8Parser.ArgumentListContext ctx) { }
-	@Override public void enterMethodReference(Java8Parser.MethodReferenceContext ctx) { }
-	@Override public void exitMethodReference(Java8Parser.MethodReferenceContext ctx) { }
-	@Override public void enterMethodReference_lf_primary(Java8Parser.MethodReference_lf_primaryContext ctx) { }
-	@Override public void exitMethodReference_lf_primary(Java8Parser.MethodReference_lf_primaryContext ctx) { }
-	@Override public void enterMethodReference_lfno_primary(Java8Parser.MethodReference_lfno_primaryContext ctx) { }
-	@Override public void exitMethodReference_lfno_primary(Java8Parser.MethodReference_lfno_primaryContext ctx) { }
-	@Override public void enterArrayCreationExpression(Java8Parser.ArrayCreationExpressionContext ctx) { }
-	@Override public void exitArrayCreationExpression(Java8Parser.ArrayCreationExpressionContext ctx) { }
-	@Override public void enterDimExprs(Java8Parser.DimExprsContext ctx) { }
-	@Override public void exitDimExprs(Java8Parser.DimExprsContext ctx) { }
-	@Override public void enterDimExpr(Java8Parser.DimExprContext ctx) { }
-	@Override public void exitDimExpr(Java8Parser.DimExprContext ctx) { }
-	@Override public void enterConstantExpression(Java8Parser.ConstantExpressionContext ctx) { }
-	@Override public void exitConstantExpression(Java8Parser.ConstantExpressionContext ctx) { }
-	@Override public void enterExpression(Java8Parser.ExpressionContext ctx) { }
-	@Override public void exitExpression(Java8Parser.ExpressionContext ctx) { }
-	@Override public void enterLambdaExpression(Java8Parser.LambdaExpressionContext ctx) { }
-	@Override public void exitLambdaExpression(Java8Parser.LambdaExpressionContext ctx) { }
-	@Override public void enterLambdaParameters(Java8Parser.LambdaParametersContext ctx) { }
-	@Override public void exitLambdaParameters(Java8Parser.LambdaParametersContext ctx) { }
-	@Override public void enterInferredFormalParameterList(Java8Parser.InferredFormalParameterListContext ctx) { }
-	@Override public void exitInferredFormalParameterList(Java8Parser.InferredFormalParameterListContext ctx) { }
-	@Override public void enterLambdaBody(Java8Parser.LambdaBodyContext ctx) { }
-	@Override public void exitLambdaBody(Java8Parser.LambdaBodyContext ctx) { }
-	@Override public void enterAssignmentExpression(Java8Parser.AssignmentExpressionContext ctx) { }
-	@Override public void exitAssignmentExpression(Java8Parser.AssignmentExpressionContext ctx) { }
-	@Override public void enterAssignment(Java8Parser.AssignmentContext ctx) { }
-	@Override public void exitAssignment(Java8Parser.AssignmentContext ctx) { }
-	@Override public void enterLeftHandSide(Java8Parser.LeftHandSideContext ctx) { }
-	@Override public void exitLeftHandSide(Java8Parser.LeftHandSideContext ctx) { }
-	@Override public void enterAssignmentOperator(Java8Parser.AssignmentOperatorContext ctx) { }
-	@Override public void exitAssignmentOperator(Java8Parser.AssignmentOperatorContext ctx) { }
-	@Override public void enterConditionalExpression(Java8Parser.ConditionalExpressionContext ctx) { }
-	@Override public void exitConditionalExpression(Java8Parser.ConditionalExpressionContext ctx) { }
-	@Override public void enterConditionalOrExpression(Java8Parser.ConditionalOrExpressionContext ctx) { }
-	@Override public void exitConditionalOrExpression(Java8Parser.ConditionalOrExpressionContext ctx) { }
-	@Override public void enterConditionalAndExpression(Java8Parser.ConditionalAndExpressionContext ctx) { }
-	@Override public void exitConditionalAndExpression(Java8Parser.ConditionalAndExpressionContext ctx) { }
-	@Override public void enterInclusiveOrExpression(Java8Parser.InclusiveOrExpressionContext ctx) { }
-	@Override public void exitInclusiveOrExpression(Java8Parser.InclusiveOrExpressionContext ctx) { }
-	@Override public void enterExclusiveOrExpression(Java8Parser.ExclusiveOrExpressionContext ctx) { }
-	@Override public void exitExclusiveOrExpression(Java8Parser.ExclusiveOrExpressionContext ctx) { }
-	@Override public void enterAndExpression(Java8Parser.AndExpressionContext ctx) { }
-	@Override public void exitAndExpression(Java8Parser.AndExpressionContext ctx) { }
-	@Override public void enterEqualityExpression(Java8Parser.EqualityExpressionContext ctx) { }
-	@Override public void exitEqualityExpression(Java8Parser.EqualityExpressionContext ctx) { }
-	@Override public void enterRelationalExpression(Java8Parser.RelationalExpressionContext ctx) { }
-	@Override public void exitRelationalExpression(Java8Parser.RelationalExpressionContext ctx) { }
-	@Override public void enterShiftExpression(Java8Parser.ShiftExpressionContext ctx) { }
-	@Override public void exitShiftExpression(Java8Parser.ShiftExpressionContext ctx) { }
-	@Override public void enterAdditiveExpression(Java8Parser.AdditiveExpressionContext ctx) { }
-	@Override public void exitAdditiveExpression(Java8Parser.AdditiveExpressionContext ctx) { }
-	@Override public void enterMultiplicativeExpression(Java8Parser.MultiplicativeExpressionContext ctx) { }
-	@Override public void exitMultiplicativeExpression(Java8Parser.MultiplicativeExpressionContext ctx) { }
-	@Override public void enterUnaryExpression(Java8Parser.UnaryExpressionContext ctx) { }
-	@Override public void exitUnaryExpression(Java8Parser.UnaryExpressionContext ctx) { }
-	@Override public void enterPreIncrementExpression(Java8Parser.PreIncrementExpressionContext ctx) { }
-	@Override public void exitPreIncrementExpression(Java8Parser.PreIncrementExpressionContext ctx) { }
-	@Override public void enterPreDecrementExpression(Java8Parser.PreDecrementExpressionContext ctx) { }
-	@Override public void exitPreDecrementExpression(Java8Parser.PreDecrementExpressionContext ctx) { }
-	@Override public void enterUnaryExpressionNotPlusMinus(Java8Parser.UnaryExpressionNotPlusMinusContext ctx) { }
-	@Override public void exitUnaryExpressionNotPlusMinus(Java8Parser.UnaryExpressionNotPlusMinusContext ctx) { }
-	@Override public void enterPostfixExpression(Java8Parser.PostfixExpressionContext ctx) { }
-	@Override public void exitPostfixExpression(Java8Parser.PostfixExpressionContext ctx) { }
-	@Override public void enterPostIncrementExpression(Java8Parser.PostIncrementExpressionContext ctx) { }
-	@Override public void exitPostIncrementExpression(Java8Parser.PostIncrementExpressionContext ctx) { }
-	@Override public void enterPostIncrementExpression_lf_postfixExpression(Java8Parser.PostIncrementExpression_lf_postfixExpressionContext ctx) { }
-	@Override public void exitPostIncrementExpression_lf_postfixExpression(Java8Parser.PostIncrementExpression_lf_postfixExpressionContext ctx) { }
-	@Override public void enterPostDecrementExpression(Java8Parser.PostDecrementExpressionContext ctx) { }
-	@Override public void exitPostDecrementExpression(Java8Parser.PostDecrementExpressionContext ctx) { }
-	@Override public void enterPostDecrementExpression_lf_postfixExpression(Java8Parser.PostDecrementExpression_lf_postfixExpressionContext ctx) { }
-	@Override public void exitPostDecrementExpression_lf_postfixExpression(Java8Parser.PostDecrementExpression_lf_postfixExpressionContext ctx) { }
-	@Override public void enterCastExpression(Java8Parser.CastExpressionContext ctx) { }
-	@Override public void exitCastExpression(Java8Parser.CastExpressionContext ctx) { }
+	@Override public void exitConstructorDeclaration(JavaParser.ConstructorDeclarationContext ctx) {
+		tracer.pop();
+	}
+	@Override public void enterConstructorModifier(JavaParser.ConstructorModifierContext ctx) { }
+	@Override public void exitConstructorModifier(JavaParser.ConstructorModifierContext ctx) { }
+	@Override public void enterConstructorDeclarator(JavaParser.ConstructorDeclaratorContext ctx) { }
+	@Override public void exitConstructorDeclarator(JavaParser.ConstructorDeclaratorContext ctx) { }
+	@Override public void enterSimpleTypeName(JavaParser.SimpleTypeNameContext ctx) { }
+	@Override public void exitSimpleTypeName(JavaParser.SimpleTypeNameContext ctx) { }
+	@Override public void enterConstructorBody(JavaParser.ConstructorBodyContext ctx) { }
+	@Override public void exitConstructorBody(JavaParser.ConstructorBodyContext ctx) { }
+	@Override public void enterExplicitConstructorInvocation(JavaParser.ExplicitConstructorInvocationContext ctx) { }
+	@Override public void exitExplicitConstructorInvocation(JavaParser.ExplicitConstructorInvocationContext ctx) { }
+	@Override public void enterEnumDeclaration(JavaParser.EnumDeclarationContext ctx) { }
+	@Override public void exitEnumDeclaration(JavaParser.EnumDeclarationContext ctx) { }
+	@Override public void enterEnumBody(JavaParser.EnumBodyContext ctx) { }
+	@Override public void exitEnumBody(JavaParser.EnumBodyContext ctx) { }
+	@Override public void enterEnumConstantList(JavaParser.EnumConstantListContext ctx) { }
+	@Override public void exitEnumConstantList(JavaParser.EnumConstantListContext ctx) { }
+	@Override public void enterEnumConstant(JavaParser.EnumConstantContext ctx) { }
+	@Override public void exitEnumConstant(JavaParser.EnumConstantContext ctx) { }
+	@Override public void enterEnumConstantModifier(JavaParser.EnumConstantModifierContext ctx) { }
+	@Override public void exitEnumConstantModifier(JavaParser.EnumConstantModifierContext ctx) { }
+	@Override public void enterEnumBodyDeclarations(JavaParser.EnumBodyDeclarationsContext ctx) { }
+	@Override public void exitEnumBodyDeclarations(JavaParser.EnumBodyDeclarationsContext ctx) { }
+	@Override public void enterInterfaceDeclaration(JavaParser.InterfaceDeclarationContext ctx) { }
+	@Override public void exitInterfaceDeclaration(JavaParser.InterfaceDeclarationContext ctx) { }
+	@Override public void enterNormalInterfaceDeclaration(JavaParser.NormalInterfaceDeclarationContext ctx) {
+		List<String> interfaceModifiers = new ArrayList<>();
+		List<String> typeParameters = new ArrayList<>();
+		List<String> superInterfaces = new ArrayList<>();
+		String name = ctx.Identifier().getText();
+
+		if (ctx.interfaceModifier() != null)
+			for (JavaParser.InterfaceModifierContext x : ctx.interfaceModifier())
+				interfaceModifiers.add(x.getText());
+
+		if (ctx.typeParameters() != null)
+			for (JavaParser.TypeParameterContext x : ctx.typeParameters().typeParameterList().typeParameter())
+				typeParameters.add(x.getText());
+
+		if (ctx.extendsInterfaces() != null)
+			for (JavaParser.InterfaceTypeContext x : ctx.extendsInterfaces().interfaceTypeList().interfaceType())
+				superInterfaces.add(x.getText());
+
+		CustomInterface currentInterface = new CustomInterface(name, interfaceModifiers, superInterfaces, typeParameters);
+		if (tracer.size() == 0)
+			interfaces.add(currentInterface);
+		else if (tracer.peek() instanceof CustomClass)
+			((CustomClass) tracer.peek()).interfaces.add(currentInterface);
+		else if (tracer.peek() instanceof CustomInterface)
+			((CustomInterface) tracer.peek()).interfaces.add(currentInterface);
+		tracer.add((Object) currentInterface);
+	}
+	@Override public void exitNormalInterfaceDeclaration(JavaParser.NormalInterfaceDeclarationContext ctx) {
+		tracer.pop();
+	}
+	@Override public void enterInterfaceModifier(JavaParser.InterfaceModifierContext ctx) { }
+	@Override public void exitInterfaceModifier(JavaParser.InterfaceModifierContext ctx) { }
+	@Override public void enterExtendsInterfaces(JavaParser.ExtendsInterfacesContext ctx) { }
+	@Override public void exitExtendsInterfaces(JavaParser.ExtendsInterfacesContext ctx) { }
+	@Override public void enterInterfaceBody(JavaParser.InterfaceBodyContext ctx) { }
+	@Override public void exitInterfaceBody(JavaParser.InterfaceBodyContext ctx) { }
+	@Override public void enterInterfaceMemberDeclaration(JavaParser.InterfaceMemberDeclarationContext ctx) { }
+	@Override public void exitInterfaceMemberDeclaration(JavaParser.InterfaceMemberDeclarationContext ctx) { }
+	@Override public void enterConstantDeclaration(JavaParser.ConstantDeclarationContext ctx) {
+		List<String> constantModifiers = new ArrayList<>();
+		String type = ctx.unannType().getText();
+
+		if (ctx.constantModifier() != null)
+			for (JavaParser.ConstantModifierContext x : ctx.constantModifier())
+				constantModifiers.add(x.getText());
+
+		for (JavaParser.VariableDeclaratorContext x : ctx.variableDeclaratorList().variableDeclarator()) {
+			String name = x.variableDeclaratorId().Identifier().getText();
+			String value = x.variableInitializer() == null ? null : x.variableInitializer().getText();
+			CustomVariable constant = new CustomVariable(name, constantModifiers, type, value);
+			CustomInterface currentInterface = (CustomInterface) tracer.peek();
+			currentInterface.constants.add(constant);
+		}
+	}
+	@Override public void exitConstantDeclaration(JavaParser.ConstantDeclarationContext ctx) { }
+	@Override public void enterConstantModifier(JavaParser.ConstantModifierContext ctx) { }
+	@Override public void exitConstantModifier(JavaParser.ConstantModifierContext ctx) { }
+	@Override public void enterInterfaceMethodDeclaration(JavaParser.InterfaceMethodDeclarationContext ctx) { }
+	@Override public void exitInterfaceMethodDeclaration(JavaParser.InterfaceMethodDeclarationContext ctx) { }
+	@Override public void enterInterfaceMethodModifier(JavaParser.InterfaceMethodModifierContext ctx) { }
+	@Override public void exitInterfaceMethodModifier(JavaParser.InterfaceMethodModifierContext ctx) { }
+	@Override public void enterAnnotationTypeDeclaration(JavaParser.AnnotationTypeDeclarationContext ctx) { }
+	@Override public void exitAnnotationTypeDeclaration(JavaParser.AnnotationTypeDeclarationContext ctx) { }
+	@Override public void enterAnnotationTypeBody(JavaParser.AnnotationTypeBodyContext ctx) { }
+	@Override public void exitAnnotationTypeBody(JavaParser.AnnotationTypeBodyContext ctx) { }
+	@Override public void enterAnnotationTypeMemberDeclaration(JavaParser.AnnotationTypeMemberDeclarationContext ctx) { }
+	@Override public void exitAnnotationTypeMemberDeclaration(JavaParser.AnnotationTypeMemberDeclarationContext ctx) { }
+	@Override public void enterAnnotationTypeElementDeclaration(JavaParser.AnnotationTypeElementDeclarationContext ctx) { }
+	@Override public void exitAnnotationTypeElementDeclaration(JavaParser.AnnotationTypeElementDeclarationContext ctx) { }
+	@Override public void enterAnnotationTypeElementModifier(JavaParser.AnnotationTypeElementModifierContext ctx) { }
+	@Override public void exitAnnotationTypeElementModifier(JavaParser.AnnotationTypeElementModifierContext ctx) { }
+	@Override public void enterDefaultValue(JavaParser.DefaultValueContext ctx) { }
+	@Override public void exitDefaultValue(JavaParser.DefaultValueContext ctx) { }
+	@Override public void enterAnnotation(JavaParser.AnnotationContext ctx) { }
+	@Override public void exitAnnotation(JavaParser.AnnotationContext ctx) { }
+	@Override public void enterNormalAnnotation(JavaParser.NormalAnnotationContext ctx) { }
+	@Override public void exitNormalAnnotation(JavaParser.NormalAnnotationContext ctx) { }
+	@Override public void enterElementValuePairList(JavaParser.ElementValuePairListContext ctx) { }
+	@Override public void exitElementValuePairList(JavaParser.ElementValuePairListContext ctx) { }
+	@Override public void enterElementValuePair(JavaParser.ElementValuePairContext ctx) { }
+	@Override public void exitElementValuePair(JavaParser.ElementValuePairContext ctx) { }
+	@Override public void enterElementValue(JavaParser.ElementValueContext ctx) { }
+	@Override public void exitElementValue(JavaParser.ElementValueContext ctx) { }
+	@Override public void enterElementValueArrayInitializer(JavaParser.ElementValueArrayInitializerContext ctx) { }
+	@Override public void exitElementValueArrayInitializer(JavaParser.ElementValueArrayInitializerContext ctx) { }
+	@Override public void enterElementValueList(JavaParser.ElementValueListContext ctx) { }
+	@Override public void exitElementValueList(JavaParser.ElementValueListContext ctx) { }
+	@Override public void enterMarkerAnnotation(JavaParser.MarkerAnnotationContext ctx) { }
+	@Override public void exitMarkerAnnotation(JavaParser.MarkerAnnotationContext ctx) { }
+	@Override public void enterSingleElementAnnotation(JavaParser.SingleElementAnnotationContext ctx) { }
+	@Override public void exitSingleElementAnnotation(JavaParser.SingleElementAnnotationContext ctx) { }
+	@Override public void enterArrayInitializer(JavaParser.ArrayInitializerContext ctx) { }
+	@Override public void exitArrayInitializer(JavaParser.ArrayInitializerContext ctx) { }
+	@Override public void enterVariableInitializerList(JavaParser.VariableInitializerListContext ctx) { }
+	@Override public void exitVariableInitializerList(JavaParser.VariableInitializerListContext ctx) { }
+	@Override public void enterBlock(JavaParser.BlockContext ctx) { }
+	@Override public void exitBlock(JavaParser.BlockContext ctx) { }
+	@Override public void enterBlockStatements(JavaParser.BlockStatementsContext ctx) { }
+	@Override public void exitBlockStatements(JavaParser.BlockStatementsContext ctx) { }
+	@Override public void enterBlockStatement(JavaParser.BlockStatementContext ctx) { }
+	@Override public void exitBlockStatement(JavaParser.BlockStatementContext ctx) { }
+	@Override public void enterLocalVariableDeclarationStatement(JavaParser.LocalVariableDeclarationStatementContext ctx) { }
+	@Override public void exitLocalVariableDeclarationStatement(JavaParser.LocalVariableDeclarationStatementContext ctx) { }
+	@Override public void enterLocalVariableDeclaration(JavaParser.LocalVariableDeclarationContext ctx) { }
+	@Override public void exitLocalVariableDeclaration(JavaParser.LocalVariableDeclarationContext ctx) { }
+	@Override public void enterStatement(JavaParser.StatementContext ctx) { }
+	@Override public void exitStatement(JavaParser.StatementContext ctx) { }
+	@Override public void enterStatementNoShortIf(JavaParser.StatementNoShortIfContext ctx) { }
+	@Override public void exitStatementNoShortIf(JavaParser.StatementNoShortIfContext ctx) { }
+	@Override public void enterStatementWithoutTrailingSubstatement(JavaParser.StatementWithoutTrailingSubstatementContext ctx) { }
+	@Override public void exitStatementWithoutTrailingSubstatement(JavaParser.StatementWithoutTrailingSubstatementContext ctx) { }
+	@Override public void enterEmptyStatement(JavaParser.EmptyStatementContext ctx) { }
+	@Override public void exitEmptyStatement(JavaParser.EmptyStatementContext ctx) { }
+	@Override public void enterLabeledStatement(JavaParser.LabeledStatementContext ctx) { }
+	@Override public void exitLabeledStatement(JavaParser.LabeledStatementContext ctx) { }
+	@Override public void enterLabeledStatementNoShortIf(JavaParser.LabeledStatementNoShortIfContext ctx) { }
+	@Override public void exitLabeledStatementNoShortIf(JavaParser.LabeledStatementNoShortIfContext ctx) { }
+	@Override public void enterExpressionStatement(JavaParser.ExpressionStatementContext ctx) { }
+	@Override public void exitExpressionStatement(JavaParser.ExpressionStatementContext ctx) { }
+	@Override public void enterStatementExpression(JavaParser.StatementExpressionContext ctx) { }
+	@Override public void exitStatementExpression(JavaParser.StatementExpressionContext ctx) { }
+	@Override public void enterIfThenStatement(JavaParser.IfThenStatementContext ctx) { }
+	@Override public void exitIfThenStatement(JavaParser.IfThenStatementContext ctx) { }
+	@Override public void enterIfThenElseStatement(JavaParser.IfThenElseStatementContext ctx) { }
+	@Override public void exitIfThenElseStatement(JavaParser.IfThenElseStatementContext ctx) { }
+	@Override public void enterIfThenElseStatementNoShortIf(JavaParser.IfThenElseStatementNoShortIfContext ctx) { }
+	@Override public void exitIfThenElseStatementNoShortIf(JavaParser.IfThenElseStatementNoShortIfContext ctx) { }
+	@Override public void enterAssertStatement(JavaParser.AssertStatementContext ctx) { }
+	@Override public void exitAssertStatement(JavaParser.AssertStatementContext ctx) { }
+	@Override public void enterSwitchStatement(JavaParser.SwitchStatementContext ctx) { }
+	@Override public void exitSwitchStatement(JavaParser.SwitchStatementContext ctx) { }
+	@Override public void enterSwitchBlock(JavaParser.SwitchBlockContext ctx) { }
+	@Override public void exitSwitchBlock(JavaParser.SwitchBlockContext ctx) { }
+	@Override public void enterSwitchBlockStatementGroup(JavaParser.SwitchBlockStatementGroupContext ctx) { }
+	@Override public void exitSwitchBlockStatementGroup(JavaParser.SwitchBlockStatementGroupContext ctx) { }
+	@Override public void enterSwitchLabels(JavaParser.SwitchLabelsContext ctx) { }
+	@Override public void exitSwitchLabels(JavaParser.SwitchLabelsContext ctx) { }
+	@Override public void enterSwitchLabel(JavaParser.SwitchLabelContext ctx) { }
+	@Override public void exitSwitchLabel(JavaParser.SwitchLabelContext ctx) { }
+	@Override public void enterEnumConstantName(JavaParser.EnumConstantNameContext ctx) { }
+	@Override public void exitEnumConstantName(JavaParser.EnumConstantNameContext ctx) { }
+	@Override public void enterWhileStatement(JavaParser.WhileStatementContext ctx) { }
+	@Override public void exitWhileStatement(JavaParser.WhileStatementContext ctx) { }
+	@Override public void enterWhileStatementNoShortIf(JavaParser.WhileStatementNoShortIfContext ctx) { }
+	@Override public void exitWhileStatementNoShortIf(JavaParser.WhileStatementNoShortIfContext ctx) { }
+	@Override public void enterDoStatement(JavaParser.DoStatementContext ctx) { }
+	@Override public void exitDoStatement(JavaParser.DoStatementContext ctx) { }
+	@Override public void enterForStatement(JavaParser.ForStatementContext ctx) { }
+	@Override public void exitForStatement(JavaParser.ForStatementContext ctx) { }
+	@Override public void enterForStatementNoShortIf(JavaParser.ForStatementNoShortIfContext ctx) { }
+	@Override public void exitForStatementNoShortIf(JavaParser.ForStatementNoShortIfContext ctx) { }
+	@Override public void enterBasicForStatement(JavaParser.BasicForStatementContext ctx) { }
+	@Override public void exitBasicForStatement(JavaParser.BasicForStatementContext ctx) { }
+	@Override public void enterBasicForStatementNoShortIf(JavaParser.BasicForStatementNoShortIfContext ctx) { }
+	@Override public void exitBasicForStatementNoShortIf(JavaParser.BasicForStatementNoShortIfContext ctx) { }
+	@Override public void enterForInit(JavaParser.ForInitContext ctx) { }
+	@Override public void exitForInit(JavaParser.ForInitContext ctx) { }
+	@Override public void enterForUpdate(JavaParser.ForUpdateContext ctx) { }
+	@Override public void exitForUpdate(JavaParser.ForUpdateContext ctx) { }
+	@Override public void enterStatementExpressionList(JavaParser.StatementExpressionListContext ctx) { }
+	@Override public void exitStatementExpressionList(JavaParser.StatementExpressionListContext ctx) { }
+	@Override public void enterEnhancedForStatement(JavaParser.EnhancedForStatementContext ctx) { }
+	@Override public void exitEnhancedForStatement(JavaParser.EnhancedForStatementContext ctx) { }
+	@Override public void enterEnhancedForStatementNoShortIf(JavaParser.EnhancedForStatementNoShortIfContext ctx) { }
+	@Override public void exitEnhancedForStatementNoShortIf(JavaParser.EnhancedForStatementNoShortIfContext ctx) { }
+	@Override public void enterBreakStatement(JavaParser.BreakStatementContext ctx) { }
+	@Override public void exitBreakStatement(JavaParser.BreakStatementContext ctx) { }
+	@Override public void enterContinueStatement(JavaParser.ContinueStatementContext ctx) { }
+	@Override public void exitContinueStatement(JavaParser.ContinueStatementContext ctx) { }
+	@Override public void enterReturnStatement(JavaParser.ReturnStatementContext ctx) { }
+	@Override public void exitReturnStatement(JavaParser.ReturnStatementContext ctx) { }
+	@Override public void enterThrowStatement(JavaParser.ThrowStatementContext ctx) { }
+	@Override public void exitThrowStatement(JavaParser.ThrowStatementContext ctx) { }
+	@Override public void enterSynchronizedStatement(JavaParser.SynchronizedStatementContext ctx) { }
+	@Override public void exitSynchronizedStatement(JavaParser.SynchronizedStatementContext ctx) { }
+	@Override public void enterTryStatement(JavaParser.TryStatementContext ctx) { }
+	@Override public void exitTryStatement(JavaParser.TryStatementContext ctx) { }
+	@Override public void enterCatches(JavaParser.CatchesContext ctx) { }
+	@Override public void exitCatches(JavaParser.CatchesContext ctx) { }
+	@Override public void enterCatchClause(JavaParser.CatchClauseContext ctx) { }
+	@Override public void exitCatchClause(JavaParser.CatchClauseContext ctx) { }
+	@Override public void enterCatchFormalParameter(JavaParser.CatchFormalParameterContext ctx) { }
+	@Override public void exitCatchFormalParameter(JavaParser.CatchFormalParameterContext ctx) { }
+	@Override public void enterCatchType(JavaParser.CatchTypeContext ctx) { }
+	@Override public void exitCatchType(JavaParser.CatchTypeContext ctx) { }
+	@Override public void enterFinally_(JavaParser.Finally_Context ctx) { }
+	@Override public void exitFinally_(JavaParser.Finally_Context ctx) { }
+	@Override public void enterTryWithResourcesStatement(JavaParser.TryWithResourcesStatementContext ctx) { }
+	@Override public void exitTryWithResourcesStatement(JavaParser.TryWithResourcesStatementContext ctx) { }
+	@Override public void enterResourceSpecification(JavaParser.ResourceSpecificationContext ctx) { }
+	@Override public void exitResourceSpecification(JavaParser.ResourceSpecificationContext ctx) { }
+	@Override public void enterResourceList(JavaParser.ResourceListContext ctx) { }
+	@Override public void exitResourceList(JavaParser.ResourceListContext ctx) { }
+	@Override public void enterResource(JavaParser.ResourceContext ctx) { }
+	@Override public void exitResource(JavaParser.ResourceContext ctx) { }
+	@Override public void enterPrimary(JavaParser.PrimaryContext ctx) { }
+	@Override public void exitPrimary(JavaParser.PrimaryContext ctx) { }
+	@Override public void enterPrimaryNoNewArray(JavaParser.PrimaryNoNewArrayContext ctx) { }
+	@Override public void exitPrimaryNoNewArray(JavaParser.PrimaryNoNewArrayContext ctx) { }
+	@Override public void enterPrimaryNoNewArray_lf_arrayAccess(JavaParser.PrimaryNoNewArray_lf_arrayAccessContext ctx) { }
+	@Override public void exitPrimaryNoNewArray_lf_arrayAccess(JavaParser.PrimaryNoNewArray_lf_arrayAccessContext ctx) { }
+	@Override public void enterPrimaryNoNewArray_lfno_arrayAccess(JavaParser.PrimaryNoNewArray_lfno_arrayAccessContext ctx) { }
+	@Override public void exitPrimaryNoNewArray_lfno_arrayAccess(JavaParser.PrimaryNoNewArray_lfno_arrayAccessContext ctx) { }
+	@Override public void enterPrimaryNoNewArray_lf_primary(JavaParser.PrimaryNoNewArray_lf_primaryContext ctx) { }
+	@Override public void exitPrimaryNoNewArray_lf_primary(JavaParser.PrimaryNoNewArray_lf_primaryContext ctx) { }
+	@Override public void enterPrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(JavaParser.PrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primaryContext ctx) { }
+	@Override public void exitPrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary(JavaParser.PrimaryNoNewArray_lf_primary_lf_arrayAccess_lf_primaryContext ctx) { }
+	@Override public void enterPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(JavaParser.PrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primaryContext ctx) { }
+	@Override public void exitPrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary(JavaParser.PrimaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primaryContext ctx) { }
+	@Override public void enterPrimaryNoNewArray_lfno_primary(JavaParser.PrimaryNoNewArray_lfno_primaryContext ctx) { }
+	@Override public void exitPrimaryNoNewArray_lfno_primary(JavaParser.PrimaryNoNewArray_lfno_primaryContext ctx) { }
+	@Override public void enterPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(JavaParser.PrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primaryContext ctx) { }
+	@Override public void exitPrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary(JavaParser.PrimaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primaryContext ctx) { }
+	@Override public void enterPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(JavaParser.PrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primaryContext ctx) { }
+	@Override public void exitPrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary(JavaParser.PrimaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primaryContext ctx) { }
+	@Override public void enterClassInstanceCreationExpression(JavaParser.ClassInstanceCreationExpressionContext ctx) { }
+	@Override public void exitClassInstanceCreationExpression(JavaParser.ClassInstanceCreationExpressionContext ctx) { }
+	@Override public void enterClassInstanceCreationExpression_lf_primary(JavaParser.ClassInstanceCreationExpression_lf_primaryContext ctx) { }
+	@Override public void exitClassInstanceCreationExpression_lf_primary(JavaParser.ClassInstanceCreationExpression_lf_primaryContext ctx) { }
+	@Override public void enterClassInstanceCreationExpression_lfno_primary(JavaParser.ClassInstanceCreationExpression_lfno_primaryContext ctx) { }
+	@Override public void exitClassInstanceCreationExpression_lfno_primary(JavaParser.ClassInstanceCreationExpression_lfno_primaryContext ctx) { }
+	@Override public void enterTypeArgumentsOrDiamond(JavaParser.TypeArgumentsOrDiamondContext ctx) { }
+	@Override public void exitTypeArgumentsOrDiamond(JavaParser.TypeArgumentsOrDiamondContext ctx) { }
+	@Override public void enterFieldAccess(JavaParser.FieldAccessContext ctx) { }
+	@Override public void exitFieldAccess(JavaParser.FieldAccessContext ctx) { }
+	@Override public void enterFieldAccess_lf_primary(JavaParser.FieldAccess_lf_primaryContext ctx) { }
+	@Override public void exitFieldAccess_lf_primary(JavaParser.FieldAccess_lf_primaryContext ctx) { }
+	@Override public void enterFieldAccess_lfno_primary(JavaParser.FieldAccess_lfno_primaryContext ctx) { }
+	@Override public void exitFieldAccess_lfno_primary(JavaParser.FieldAccess_lfno_primaryContext ctx) { }
+	@Override public void enterArrayAccess(JavaParser.ArrayAccessContext ctx) { }
+	@Override public void exitArrayAccess(JavaParser.ArrayAccessContext ctx) { }
+	@Override public void enterArrayAccess_lf_primary(JavaParser.ArrayAccess_lf_primaryContext ctx) { }
+	@Override public void exitArrayAccess_lf_primary(JavaParser.ArrayAccess_lf_primaryContext ctx) { }
+	@Override public void enterArrayAccess_lfno_primary(JavaParser.ArrayAccess_lfno_primaryContext ctx) { }
+	@Override public void exitArrayAccess_lfno_primary(JavaParser.ArrayAccess_lfno_primaryContext ctx) { }
+	@Override public void enterMethodInvocation(JavaParser.MethodInvocationContext ctx) { }
+	@Override public void exitMethodInvocation(JavaParser.MethodInvocationContext ctx) { }
+	@Override public void enterMethodInvocation_lf_primary(JavaParser.MethodInvocation_lf_primaryContext ctx) { }
+	@Override public void exitMethodInvocation_lf_primary(JavaParser.MethodInvocation_lf_primaryContext ctx) { }
+	@Override public void enterMethodInvocation_lfno_primary(JavaParser.MethodInvocation_lfno_primaryContext ctx) { }
+	@Override public void exitMethodInvocation_lfno_primary(JavaParser.MethodInvocation_lfno_primaryContext ctx) { }
+	@Override public void enterArgumentList(JavaParser.ArgumentListContext ctx) { }
+	@Override public void exitArgumentList(JavaParser.ArgumentListContext ctx) { }
+	@Override public void enterMethodReference(JavaParser.MethodReferenceContext ctx) { }
+	@Override public void exitMethodReference(JavaParser.MethodReferenceContext ctx) { }
+	@Override public void enterMethodReference_lf_primary(JavaParser.MethodReference_lf_primaryContext ctx) { }
+	@Override public void exitMethodReference_lf_primary(JavaParser.MethodReference_lf_primaryContext ctx) { }
+	@Override public void enterMethodReference_lfno_primary(JavaParser.MethodReference_lfno_primaryContext ctx) { }
+	@Override public void exitMethodReference_lfno_primary(JavaParser.MethodReference_lfno_primaryContext ctx) { }
+	@Override public void enterArrayCreationExpression(JavaParser.ArrayCreationExpressionContext ctx) { }
+	@Override public void exitArrayCreationExpression(JavaParser.ArrayCreationExpressionContext ctx) { }
+	@Override public void enterDimExprs(JavaParser.DimExprsContext ctx) { }
+	@Override public void exitDimExprs(JavaParser.DimExprsContext ctx) { }
+	@Override public void enterDimExpr(JavaParser.DimExprContext ctx) { }
+	@Override public void exitDimExpr(JavaParser.DimExprContext ctx) { }
+	@Override public void enterConstantExpression(JavaParser.ConstantExpressionContext ctx) { }
+	@Override public void exitConstantExpression(JavaParser.ConstantExpressionContext ctx) { }
+	@Override public void enterExpression(JavaParser.ExpressionContext ctx) { }
+	@Override public void exitExpression(JavaParser.ExpressionContext ctx) { }
+	@Override public void enterLambdaExpression(JavaParser.LambdaExpressionContext ctx) { }
+	@Override public void exitLambdaExpression(JavaParser.LambdaExpressionContext ctx) { }
+	@Override public void enterLambdaParameters(JavaParser.LambdaParametersContext ctx) { }
+	@Override public void exitLambdaParameters(JavaParser.LambdaParametersContext ctx) { }
+	@Override public void enterInferredFormalParameterList(JavaParser.InferredFormalParameterListContext ctx) { }
+	@Override public void exitInferredFormalParameterList(JavaParser.InferredFormalParameterListContext ctx) { }
+	@Override public void enterLambdaBody(JavaParser.LambdaBodyContext ctx) { }
+	@Override public void exitLambdaBody(JavaParser.LambdaBodyContext ctx) { }
+	@Override public void enterAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) { }
+	@Override public void exitAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) { }
+	@Override public void enterAssignment(JavaParser.AssignmentContext ctx) { }
+	@Override public void exitAssignment(JavaParser.AssignmentContext ctx) { }
+	@Override public void enterLeftHandSide(JavaParser.LeftHandSideContext ctx) { }
+	@Override public void exitLeftHandSide(JavaParser.LeftHandSideContext ctx) { }
+	@Override public void enterAssignmentOperator(JavaParser.AssignmentOperatorContext ctx) { }
+	@Override public void exitAssignmentOperator(JavaParser.AssignmentOperatorContext ctx) { }
+	@Override public void enterConditionalExpression(JavaParser.ConditionalExpressionContext ctx) { }
+	@Override public void exitConditionalExpression(JavaParser.ConditionalExpressionContext ctx) { }
+	@Override public void enterConditionalOrExpression(JavaParser.ConditionalOrExpressionContext ctx) { }
+	@Override public void exitConditionalOrExpression(JavaParser.ConditionalOrExpressionContext ctx) { }
+	@Override public void enterConditionalAndExpression(JavaParser.ConditionalAndExpressionContext ctx) { }
+	@Override public void exitConditionalAndExpression(JavaParser.ConditionalAndExpressionContext ctx) { }
+	@Override public void enterInclusiveOrExpression(JavaParser.InclusiveOrExpressionContext ctx) { }
+	@Override public void exitInclusiveOrExpression(JavaParser.InclusiveOrExpressionContext ctx) { }
+	@Override public void enterExclusiveOrExpression(JavaParser.ExclusiveOrExpressionContext ctx) { }
+	@Override public void exitExclusiveOrExpression(JavaParser.ExclusiveOrExpressionContext ctx) { }
+	@Override public void enterAndExpression(JavaParser.AndExpressionContext ctx) { }
+	@Override public void exitAndExpression(JavaParser.AndExpressionContext ctx) { }
+	@Override public void enterEqualityExpression(JavaParser.EqualityExpressionContext ctx) { }
+	@Override public void exitEqualityExpression(JavaParser.EqualityExpressionContext ctx) { }
+	@Override public void enterRelationalExpression(JavaParser.RelationalExpressionContext ctx) { }
+	@Override public void exitRelationalExpression(JavaParser.RelationalExpressionContext ctx) { }
+	@Override public void enterShiftExpression(JavaParser.ShiftExpressionContext ctx) { }
+	@Override public void exitShiftExpression(JavaParser.ShiftExpressionContext ctx) { }
+	@Override public void enterAdditiveExpression(JavaParser.AdditiveExpressionContext ctx) { }
+	@Override public void exitAdditiveExpression(JavaParser.AdditiveExpressionContext ctx) { }
+	@Override public void enterMultiplicativeExpression(JavaParser.MultiplicativeExpressionContext ctx) { }
+	@Override public void exitMultiplicativeExpression(JavaParser.MultiplicativeExpressionContext ctx) { }
+	@Override public void enterUnaryExpression(JavaParser.UnaryExpressionContext ctx) { }
+	@Override public void exitUnaryExpression(JavaParser.UnaryExpressionContext ctx) { }
+	@Override public void enterPreIncrementExpression(JavaParser.PreIncrementExpressionContext ctx) { }
+	@Override public void exitPreIncrementExpression(JavaParser.PreIncrementExpressionContext ctx) { }
+	@Override public void enterPreDecrementExpression(JavaParser.PreDecrementExpressionContext ctx) { }
+	@Override public void exitPreDecrementExpression(JavaParser.PreDecrementExpressionContext ctx) { }
+	@Override public void enterUnaryExpressionNotPlusMinus(JavaParser.UnaryExpressionNotPlusMinusContext ctx) { }
+	@Override public void exitUnaryExpressionNotPlusMinus(JavaParser.UnaryExpressionNotPlusMinusContext ctx) { }
+	@Override public void enterPostfixExpression(JavaParser.PostfixExpressionContext ctx) { }
+	@Override public void exitPostfixExpression(JavaParser.PostfixExpressionContext ctx) { }
+	@Override public void enterPostIncrementExpression(JavaParser.PostIncrementExpressionContext ctx) { }
+	@Override public void exitPostIncrementExpression(JavaParser.PostIncrementExpressionContext ctx) { }
+	@Override public void enterPostIncrementExpression_lf_postfixExpression(JavaParser.PostIncrementExpression_lf_postfixExpressionContext ctx) { }
+	@Override public void exitPostIncrementExpression_lf_postfixExpression(JavaParser.PostIncrementExpression_lf_postfixExpressionContext ctx) { }
+	@Override public void enterPostDecrementExpression(JavaParser.PostDecrementExpressionContext ctx) { }
+	@Override public void exitPostDecrementExpression(JavaParser.PostDecrementExpressionContext ctx) { }
+	@Override public void enterPostDecrementExpression_lf_postfixExpression(JavaParser.PostDecrementExpression_lf_postfixExpressionContext ctx) { }
+	@Override public void exitPostDecrementExpression_lf_postfixExpression(JavaParser.PostDecrementExpression_lf_postfixExpressionContext ctx) { }
+	@Override public void enterCastExpression(JavaParser.CastExpressionContext ctx) { }
+	@Override public void exitCastExpression(JavaParser.CastExpressionContext ctx) { }
 
 	@Override public void enterEveryRule(ParserRuleContext ctx) { }
 	@Override public void exitEveryRule(ParserRuleContext ctx) { }
 	@Override public void visitTerminal(TerminalNode node) { }
 	@Override public void visitErrorNode(ErrorNode node) { }
 
-	/** DOCUMENTING PROCEDURES **/
-
-	private void printimports() {
-		if (!imports.isEmpty()){
-		xml+="<imports>"+separator;
-		for (int i = 0; i < imports.size(); i++) {
-			xml+="<import>"+imports.get(i)+"</import>"+separator;
-		}
-		xml+="</imports>"+separator;
-		}	
-	}
-	private void printclasses(){
-		if (!classes.isEmpty()){
-		xml+="<clases>"+separator;
-		for (int i = 0; i < classes.size(); i++) {
-			
-			String opentag="<clase name=\""+classes.get(i).name+"\" ";
-			String content="";
-			
-			if (classes.get(i).classModifiers.size()>0){
-				for (int j = 0; j < classes.get(i).classModifiers.size(); j++){
-					opentag+="modificador_"+j+"=\""+classes.get(i).classModifiers.get(j)+"\" ";
-				}
-			}
-			
-			if (classes.get(i).superClass!=null) {
-				opentag+="superClass=\""+classes.get(i).superClass+"\" ";
-			}
-			
-			if (classes.get(i).superInterfaces.size()>0){
-				for (int j = 0; j < classes.get(i).superInterfaces.size(); j++){
-					opentag+="superInterfaz"+j+"=\""+classes.get(i).superInterfaces.get(j)+"\" ";
-				}
-			}
-
-			if (classes.get(i).typeParameters.size()>0){
-				for (int j = 0; j < classes.get(i).typeParameters.size(); j++){
-					opentag+="typeParameter"+j+"=\""+classes.get(i).typeParameters.get(j)+"\" ";
-				}
-			}
-			opentag=opentag.trim()+">";
-			
-			if (classes.get(i).constants.size()>0){
-				content+="<constants total="+classes.get(i).constants.size()+">"+separator;
-				for (int j = 0; j < classes.get(i).constants.size(); j++){
-					content+="<constant name=\""+classes.get(i).constants.get(j).name+"\" "
-							+ "type=\""+classes.get(i).constants.get(j).type+"\">"
-									+ classes.get(i).constants.get(j).value +"</constant>"+separator;
-				}
-			}
-			
-			if (classes.get(i).variables.size()>0){
-				content+="<variables total="+classes.get(i).variables.size()+">"+separator;
-				for (int j = 0; j < classes.get(i).variables.size(); j++){
-					content+="<variable name=\""+classes.get(i).variables.get(j).name+"\" "
-							+ "type=\""+classes.get(i).variables.get(j).type+"\">"
-									+ classes.get(i).variables.get(j).value +"</variable>"+separator;
-				}
-			}
-			/*
-			public ArrayList<CustomMethod> methods = new ArrayList<>();
-			public ArrayList<CustomClass> classes = new ArrayList<>();
-			public ArrayList<CustomInterface> interfaces = new ArrayList<>();
-			*/
-			
-			xml+=opentag+content+"</clase>"+separator;
-		}
-		xml+="</clases>"+separator;
-		}
-	}
-	
 }
 
 /** DOCUMENTING DATA CLASSES **/
+
+/** Custom Import **/
+class CustomImport {
+	String name;
+	String type;
+
+	public CustomImport(String name, String type) {
+		this.name = name;
+		this.type = type;
+	}
+}
 
 /** Custom Class **/
 class CustomClass {
 
 	/* Class Metadata */
+	public List<String> classModifiers;
 	public String name;
-	public ArrayList<String> classModifiers = new ArrayList<>();
+	public List<String> typeParameters;
 	public String superClass;
-	public ArrayList<String> superInterfaces = new ArrayList<>();
-	public ArrayList<String> typeParameters = new ArrayList<>();
+	public List<String> superInterfaces;
 
 	/** Class Attributes **/
-	public ArrayList<CustomVariable> constants = new ArrayList<>();
-	public ArrayList<CustomVariable> variables = new ArrayList<>();
-	public ArrayList<CustomMethod> methods = new ArrayList<>();
-	public ArrayList<CustomClass> classes = new ArrayList<>();
-	public ArrayList<CustomInterface> interfaces = new ArrayList<>();
+	public List<CustomVariable> constants;
+	public List<CustomVariable> variables;
+	public List<CustomMethod> constructors;
+	public List<CustomMethod> methods;
+	public List<CustomClass> classes;
+	public List<CustomInterface> interfaces;
+
+	public CustomClass() {
+		constants = new ArrayList<>();
+		variables = new ArrayList<>();
+		constructors = new ArrayList<>();
+		methods = new ArrayList<>();
+		classes = new ArrayList<>();
+		interfaces = new ArrayList<>();
+	}
+
+	public CustomClass(String className, List<String> classModifiers, List<String> typeParameters, String superClass, List<String> superInterfaces) {
+		this();
+		this.classModifiers = classModifiers;
+		this.name = className;
+		this.typeParameters = typeParameters;
+		this.superClass = superClass;
+		this.superInterfaces = superInterfaces;
+	}
 
 }
 
@@ -678,15 +768,30 @@ class CustomInterface {
 
 	/* Interface Metadata */
 	public String name;
-	public ArrayList<String> interfaceModifiers = new ArrayList<>();
-	public ArrayList<String> superInterface = new ArrayList<>();
-	public ArrayList<String> typeParameters = new ArrayList<>();
+	public List<String> interfaceModifiers;
+	public List<String> superInterfaces;
+	public List<String> typeParameters;
 
 	/** Interface Attributes **/
-	public ArrayList<CustomVariable> constants = new ArrayList<>();
-	public ArrayList<CustomMethod> methods = new ArrayList<>();
-	public ArrayList<CustomClass> classes = new ArrayList<>();
-	public ArrayList<CustomInterface> interfaces = new ArrayList<>();
+	public List<CustomVariable> constants;
+	public List<CustomMethod> methods;
+	public List<CustomClass> classes;
+	public List<CustomInterface> interfaces;
+
+	public CustomInterface() {
+		constants = new ArrayList<>();
+		methods = new ArrayList<>();
+		classes = new ArrayList<>();
+		interfaces = new ArrayList<>();
+	}
+
+	public CustomInterface(String name, List<String> interfaceModifiers, List<String> superInterfaces, List<String> typeParameter) {
+		this();
+		this.name = name;
+		this.interfaceModifiers = interfaceModifiers;
+		this.superInterfaces = superInterfaces;
+		this.typeParameters = typeParameters;
+	}
 
 }
 
@@ -695,10 +800,26 @@ class CustomMethod {
 
 	/** Method Metadata **/
 	public String name;
-	public String typeReturned;
-	public String errorsThrown;
-	public ArrayList<String> methodModifiers = new ArrayList<>();
-	public ArrayList<CustomVariable> parameters = new ArrayList<>();
+	public String result;
+	public List<String> exceptions;
+	public List<String> methodModifiers;
+
+	/** Method Attributes **/
+	public List<CustomVariable> parameters;
+	public List<CustomVariable> variables;
+
+	public CustomMethod() {
+		variables = new ArrayList<>();
+	}
+
+	public CustomMethod(String name, List<String> methodModifiers, String result, List<CustomVariable> parameters, List<String> exceptions) {
+		this();
+		this.name = name;
+		this.result = result;
+		this.exceptions = exceptions;
+		this.parameters = parameters;
+		this.methodModifiers = methodModifiers;
+	}
 
 }
 
@@ -708,6 +829,14 @@ class CustomVariable {
 	/** Variable Metadata **/
 	public String name;
 	public String type;
+	public List<String> modifiers;
 	public String value;
+
+	public CustomVariable(String name, List<String> modifiers, String type, String value) {
+		this.name = name;
+		this.type = type;
+		this.modifiers = modifiers;
+		this.value = value;
+	}
 
 }

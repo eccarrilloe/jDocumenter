@@ -6,9 +6,9 @@ import holamundo;
 import static Hello.*;
 
 
-public class Bank{
+public static class Bank extends SuperBank {
 
-	private Methods bankMethods;
+	private Methods bankMethods = new Methods();
 
 	public static void main( String[] args ){
 		String nameFile;

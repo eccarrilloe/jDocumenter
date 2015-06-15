@@ -2,6 +2,6 @@
 *.class
 =======
 *.class
-Java8*.java
+Java*.java
 *.tokens
 >>>>>>> First commit
