@@ -13,6 +13,7 @@ public class DocumenterListener extends JavaBaseListener {
 	/** Symbol Table **/
 	public Map<String, String> symbols = new HashMap<>();
 	public Stack<Object> tracer = new Stack<>();
+	private Object data;
 
 	/** Documenter Data **/
 	public String packageName;
@@ -121,9 +122,9 @@ public class DocumenterListener extends JavaBaseListener {
 		List<String> classModifiers = new ArrayList<>();
 		List<String> typeParameters = new ArrayList<>();
 		List<String> superInterfaces = new ArrayList<>();
-
 		String className = ctx.Identifier().getText();
 		String superClass = ctx.superclass() != null ? ctx.superclass().classType().getText() : null;
+		Integer numeroLineas = ctx.stop.getLine() - ctx.start.getLine();
 
 		if (ctx.classModifier() != null)
 			for (JavaParser.ClassModifierContext x : ctx.classModifier())
@@ -137,7 +138,7 @@ public class DocumenterListener extends JavaBaseListener {
 			for (JavaParser.InterfaceTypeContext x : ctx.superinterfaces().interfaceTypeList().interfaceType())
 				superInterfaces.add(x.getText());
 
-		CustomClass currentClass = new CustomClass(className, classModifiers, typeParameters, superClass, superInterfaces);
+		CustomClass currentClass = new CustomClass(className, classModifiers, typeParameters, superClass, superInterfaces, numeroLineas);
 		if (tracer.size() == 0)
 			classes.add(currentClass);
 		else if (tracer.peek() instanceof CustomClass)
@@ -174,6 +175,9 @@ public class DocumenterListener extends JavaBaseListener {
 		CustomClass currentClass = (CustomClass) tracer.peek();
 		boolean isConstant = false;
 
+		if (ctx.unannType().unannReferenceType() != null && ctx.unannType().unannReferenceType().unannArrayType() != null)
+			ctx.unannType().unannReferenceType().unannArrayType();
+
 		if (ctx.fieldModifier() != null)
 			for (JavaParser.FieldModifierContext x : ctx.fieldModifier())
 				fieldModifiers.add(x.getText());
@@ -187,8 +191,12 @@ public class DocumenterListener extends JavaBaseListener {
 		for (JavaParser.VariableDeclaratorContext x : ctx.variableDeclaratorList().variableDeclarator()) {
 			String name = x.variableDeclaratorId().Identifier().getText();
 			String value = x.variableInitializer() != null ? x.variableInitializer().getText() : null;
+			String varType = String.valueOf(fieldType);
 
-			CustomVariable var = new CustomVariable(name, fieldModifiers, fieldType, value);
+			if (x.variableDeclaratorId().dims() != null)
+				varType += x.variableDeclaratorId().dims().getText();
+
+			CustomVariable var = new CustomVariable(name, fieldModifiers, varType, value);
 
 			if (isConstant) currentClass.constants.add(var);
 			else currentClass.variables.add(var);
@@ -235,6 +243,7 @@ public class DocumenterListener extends JavaBaseListener {
 		List<CustomVariable> methodParameters = new ArrayList<>();
 		String name = ctx.methodHeader().methodDeclarator().Identifier().getText();
 		String result = ctx.methodHeader().result().getText();
+		Integer numeroLineas = ctx.stop.getLine() - ctx.start.getLine();
 
 		if (ctx.methodModifier() != null)
 			for (JavaParser.MethodModifierContext x : ctx.methodModifier())
@@ -284,7 +293,7 @@ public class DocumenterListener extends JavaBaseListener {
 			methodParameters.add(parameter);
 		}
 
-		CustomMethod currentMethod = new CustomMethod(name, methodModifiers, result, methodParameters, methodExceptions);
+		CustomMethod currentMethod = new CustomMethod(name, methodModifiers, result, methodParameters, methodExceptions, numeroLineas);
 		CustomClass currentClass = (CustomClass) tracer.peek();
 		currentClass.methods.add(currentMethod);
 		tracer.push((Object) currentMethod);
@@ -329,6 +338,7 @@ public class DocumenterListener extends JavaBaseListener {
 		List<CustomVariable> parameters = new ArrayList<>();
 		List<String> exceptions = new ArrayList<>();
 		String name = ctx.constructorDeclarator().simpleTypeName().Identifier().getText();
+		Integer numeroLineas = ctx.stop.getLine() - ctx.start.getLine();
 
 		if (ctx.constructorModifier() != null)
 			for (JavaParser.ConstructorModifierContext x : ctx.constructorModifier())
@@ -355,7 +365,8 @@ public class DocumenterListener extends JavaBaseListener {
 				}
 			}
 		}
-		CustomMethod currentConstructor = new CustomMethod(name, modifiers, null, parameters, exceptions);
+
+		CustomMethod currentConstructor = new CustomMethod(name, modifiers, null, parameters, exceptions, numeroLineas);
 		CustomClass currentClass = (CustomClass) tracer.peek();
 		currentClass.constructors.add(currentConstructor);
 		tracer.push((Object) currentConstructor);
@@ -388,10 +399,12 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void enterInterfaceDeclaration(JavaParser.InterfaceDeclarationContext ctx) { }
 	@Override public void exitInterfaceDeclaration(JavaParser.InterfaceDeclarationContext ctx) { }
 	@Override public void enterNormalInterfaceDeclaration(JavaParser.NormalInterfaceDeclarationContext ctx) {
+
 		List<String> interfaceModifiers = new ArrayList<>();
 		List<String> typeParameters = new ArrayList<>();
 		List<String> superInterfaces = new ArrayList<>();
 		String name = ctx.Identifier().getText();
+		Integer numeroLineas = ctx.stop.getLine() - ctx.start.getLine();
 
 		if (ctx.interfaceModifier() != null)
 			for (JavaParser.InterfaceModifierContext x : ctx.interfaceModifier())
@@ -405,7 +418,7 @@ public class DocumenterListener extends JavaBaseListener {
 			for (JavaParser.InterfaceTypeContext x : ctx.extendsInterfaces().interfaceTypeList().interfaceType())
 				superInterfaces.add(x.getText());
 
-		CustomInterface currentInterface = new CustomInterface(name, interfaceModifiers, superInterfaces, typeParameters);
+		CustomInterface currentInterface = new CustomInterface(name, interfaceModifiers, superInterfaces, typeParameters, numeroLineas);
 		if (tracer.size() == 0)
 			interfaces.add(currentInterface);
 		else if (tracer.peek() instanceof CustomClass)
@@ -444,8 +457,70 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void exitConstantDeclaration(JavaParser.ConstantDeclarationContext ctx) { }
 	@Override public void enterConstantModifier(JavaParser.ConstantModifierContext ctx) { }
 	@Override public void exitConstantModifier(JavaParser.ConstantModifierContext ctx) { }
-	@Override public void enterInterfaceMethodDeclaration(JavaParser.InterfaceMethodDeclarationContext ctx) { }
-	@Override public void exitInterfaceMethodDeclaration(JavaParser.InterfaceMethodDeclarationContext ctx) { }
+	@Override public void enterInterfaceMethodDeclaration(JavaParser.InterfaceMethodDeclarationContext ctx) {
+		List<String> methodModifiers = new ArrayList<>();
+		List<String> methodExceptions = new ArrayList<>();
+		List<CustomVariable> methodParameters = new ArrayList<>();
+		String name = ctx.methodHeader().methodDeclarator().Identifier().getText();
+		String result = ctx.methodHeader().result().getText();
+		Integer numeroLineas = ctx.stop.getLine() - ctx.start.getLine();
+
+		if (ctx.interfaceMethodModifier() != null)
+			for (JavaParser.InterfaceMethodModifierContext x : ctx.interfaceMethodModifier())
+				methodModifiers.add(x.getText());
+
+		if (ctx.methodHeader().throws_() != null)
+			for (JavaParser.ExceptionTypeContext x : ctx.methodHeader().throws_().exceptionTypeList().exceptionType())
+				methodExceptions.add(x.getText());
+
+		if (ctx.methodHeader().methodDeclarator().formalParameterList() != null) {
+			/** Parameters **/
+			if (ctx.methodHeader().methodDeclarator().formalParameterList().formalParameters() != null) {
+				for (JavaParser.FormalParameterContext x : ctx.methodHeader().methodDeclarator().formalParameterList().formalParameters().formalParameter()) {
+					List<String> parameterModifiers = new ArrayList<>();
+					String parameterName = x.variableDeclaratorId().Identifier().getText();
+					String type = x.unannType().getText();
+
+					if (x.variableModifier() != null)
+						for (JavaParser.VariableModifierContext y : x.variableModifier())
+							parameterModifiers.add(y.getText());
+
+					CustomVariable parameter = new CustomVariable(parameterName, parameterModifiers, type, null);
+					methodParameters.add(parameter);
+				}
+			}
+
+			/** Last Parameter **/
+			JavaParser.LastFormalParameterContext lastParameter = ctx.methodHeader().methodDeclarator().formalParameterList().lastFormalParameter();
+			CustomVariable parameter;
+			List<String> modifiers = new ArrayList<>();
+			String parameterName, type;
+			if (lastParameter.formalParameter() != null) {
+				parameterName = lastParameter.formalParameter().variableDeclaratorId().Identifier().getText();
+				type = lastParameter.formalParameter().unannType().getText();
+
+				if (lastParameter.formalParameter().variableModifier() != null)
+					for (JavaParser.VariableModifierContext x : lastParameter.formalParameter().variableModifier())
+						modifiers.add(x.getText());
+			} else {
+				parameterName = lastParameter.variableDeclaratorId().Identifier().getText();
+				type = lastParameter.unannType().getText();
+				if (lastParameter.variableModifier() != null)
+					for (JavaParser.VariableModifierContext x : lastParameter.variableModifier())
+						modifiers.add(x.getText());
+			}
+			parameter = new CustomVariable(name, modifiers, type, null);
+			methodParameters.add(parameter);
+		}
+
+		CustomMethod currentMethod = new CustomMethod(name, methodModifiers, result, methodParameters, methodExceptions, numeroLineas);
+		CustomInterface currentInterface = (CustomInterface) tracer.peek();
+		currentInterface.methods.add(currentMethod);
+		tracer.push((Object) currentMethod);
+	}
+	@Override public void exitInterfaceMethodDeclaration(JavaParser.InterfaceMethodDeclarationContext ctx) {
+		tracer.pop();
+	}
 	@Override public void enterInterfaceMethodModifier(JavaParser.InterfaceMethodModifierContext ctx) { }
 	@Override public void exitInterfaceMethodModifier(JavaParser.InterfaceMethodModifierContext ctx) { }
 	@Override public void enterAnnotationTypeDeclaration(JavaParser.AnnotationTypeDeclarationContext ctx) { }
@@ -490,7 +565,26 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void exitBlockStatement(JavaParser.BlockStatementContext ctx) { }
 	@Override public void enterLocalVariableDeclarationStatement(JavaParser.LocalVariableDeclarationStatementContext ctx) { }
 	@Override public void exitLocalVariableDeclarationStatement(JavaParser.LocalVariableDeclarationStatementContext ctx) { }
-	@Override public void enterLocalVariableDeclaration(JavaParser.LocalVariableDeclarationContext ctx) { }
+	@Override public void enterLocalVariableDeclaration(JavaParser.LocalVariableDeclarationContext ctx) {
+		List<String> variableModifiers = new ArrayList<>();
+		String type = ctx.unannType().getText();
+
+		if (ctx.unannType().unannReferenceType() != null && ctx.unannType().unannReferenceType().unannArrayType() != null)
+			ctx.unannType().unannReferenceType().unannArrayType();
+
+		if (ctx.variableModifier() != null)
+			for (JavaParser.VariableModifierContext x : ctx.variableModifier())
+				variableModifiers.add(x.getText());
+
+		for (JavaParser.VariableDeclaratorContext x : ctx.variableDeclaratorList().variableDeclarator()) {
+			String name = x.variableDeclaratorId().Identifier().getText();
+			String value = x.variableInitializer() == null ? null : x.variableInitializer().getText();
+
+			CustomVariable localVar = new CustomVariable(name, variableModifiers, type, value);
+			CustomMethod currentMethod = (CustomMethod) tracer.peek();
+			currentMethod.variables.add(localVar);
+		}
+	}
 	@Override public void exitLocalVariableDeclaration(JavaParser.LocalVariableDeclarationContext ctx) { }
 	@Override public void enterStatement(JavaParser.StatementContext ctx) { }
 	@Override public void exitStatement(JavaParser.StatementContext ctx) { }
@@ -508,15 +602,31 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void exitExpressionStatement(JavaParser.ExpressionStatementContext ctx) { }
 	@Override public void enterStatementExpression(JavaParser.StatementExpressionContext ctx) { }
 	@Override public void exitStatementExpression(JavaParser.StatementExpressionContext ctx) { }
-	@Override public void enterIfThenStatement(JavaParser.IfThenStatementContext ctx) { }
+	@Override public void enterIfThenStatement(JavaParser.IfThenStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("If-Then", new Integer(0));
+		currentMethod.statementTypes.put("If-Then", count + 1);
+	}
 	@Override public void exitIfThenStatement(JavaParser.IfThenStatementContext ctx) { }
-	@Override public void enterIfThenElseStatement(JavaParser.IfThenElseStatementContext ctx) { }
+	@Override public void enterIfThenElseStatement(JavaParser.IfThenElseStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("If-Then-Else", new Integer(0));
+		currentMethod.statementTypes.put("If-Then-Else", count + 1);
+	}
 	@Override public void exitIfThenElseStatement(JavaParser.IfThenElseStatementContext ctx) { }
-	@Override public void enterIfThenElseStatementNoShortIf(JavaParser.IfThenElseStatementNoShortIfContext ctx) { }
+	@Override public void enterIfThenElseStatementNoShortIf(JavaParser.IfThenElseStatementNoShortIfContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("If-Then", new Integer(0));
+		currentMethod.statementTypes.put("If-Then", count + 1);
+	}
 	@Override public void exitIfThenElseStatementNoShortIf(JavaParser.IfThenElseStatementNoShortIfContext ctx) { }
 	@Override public void enterAssertStatement(JavaParser.AssertStatementContext ctx) { }
 	@Override public void exitAssertStatement(JavaParser.AssertStatementContext ctx) { }
-	@Override public void enterSwitchStatement(JavaParser.SwitchStatementContext ctx) { }
+	@Override public void enterSwitchStatement(JavaParser.SwitchStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("Switch", new Integer(0));
+		currentMethod.statementTypes.put("Switch", count + 1);
+	}
 	@Override public void exitSwitchStatement(JavaParser.SwitchStatementContext ctx) { }
 	@Override public void enterSwitchBlock(JavaParser.SwitchBlockContext ctx) { }
 	@Override public void exitSwitchBlock(JavaParser.SwitchBlockContext ctx) { }
@@ -528,15 +638,35 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void exitSwitchLabel(JavaParser.SwitchLabelContext ctx) { }
 	@Override public void enterEnumConstantName(JavaParser.EnumConstantNameContext ctx) { }
 	@Override public void exitEnumConstantName(JavaParser.EnumConstantNameContext ctx) { }
-	@Override public void enterWhileStatement(JavaParser.WhileStatementContext ctx) { }
+	@Override public void enterWhileStatement(JavaParser.WhileStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("While-Loop", new Integer(0));
+		currentMethod.statementTypes.put("While-Loop", count + 1);
+	}
 	@Override public void exitWhileStatement(JavaParser.WhileStatementContext ctx) { }
-	@Override public void enterWhileStatementNoShortIf(JavaParser.WhileStatementNoShortIfContext ctx) { }
+	@Override public void enterWhileStatementNoShortIf(JavaParser.WhileStatementNoShortIfContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("While-Loop", new Integer(0));
+		currentMethod.statementTypes.put("While-Loop", count + 1);
+	}
 	@Override public void exitWhileStatementNoShortIf(JavaParser.WhileStatementNoShortIfContext ctx) { }
-	@Override public void enterDoStatement(JavaParser.DoStatementContext ctx) { }
+	@Override public void enterDoStatement(JavaParser.DoStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("Do-While-Loop", new Integer(0));
+		currentMethod.statementTypes.put("Do-While-Loop", count + 1);
+	}
 	@Override public void exitDoStatement(JavaParser.DoStatementContext ctx) { }
-	@Override public void enterForStatement(JavaParser.ForStatementContext ctx) { }
+	@Override public void enterForStatement(JavaParser.ForStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("For-Loop", new Integer(0));
+		currentMethod.statementTypes.put("For-Loop", count + 1);
+	}
 	@Override public void exitForStatement(JavaParser.ForStatementContext ctx) { }
-	@Override public void enterForStatementNoShortIf(JavaParser.ForStatementNoShortIfContext ctx) { }
+	@Override public void enterForStatementNoShortIf(JavaParser.ForStatementNoShortIfContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("For-Loop", new Integer(0));
+		currentMethod.statementTypes.put("For-Loop", count + 1);
+	}
 	@Override public void exitForStatementNoShortIf(JavaParser.ForStatementNoShortIfContext ctx) { }
 	@Override public void enterBasicForStatement(JavaParser.BasicForStatementContext ctx) { }
 	@Override public void exitBasicForStatement(JavaParser.BasicForStatementContext ctx) { }
@@ -556,14 +686,42 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void exitBreakStatement(JavaParser.BreakStatementContext ctx) { }
 	@Override public void enterContinueStatement(JavaParser.ContinueStatementContext ctx) { }
 	@Override public void exitContinueStatement(JavaParser.ContinueStatementContext ctx) { }
-	@Override public void enterReturnStatement(JavaParser.ReturnStatementContext ctx) { }
+	@Override public void enterReturnStatement(JavaParser.ReturnStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("Return", new Integer(0));
+		currentMethod.statementTypes.put("Return", count + 1);
+	}
 	@Override public void exitReturnStatement(JavaParser.ReturnStatementContext ctx) { }
-	@Override public void enterThrowStatement(JavaParser.ThrowStatementContext ctx) { }
+	@Override public void enterThrowStatement(JavaParser.ThrowStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("Throw-Exception", new Integer(0));
+		currentMethod.statementTypes.put("Throw-Exception", count + 1);
+	}
 	@Override public void exitThrowStatement(JavaParser.ThrowStatementContext ctx) { }
 	@Override public void enterSynchronizedStatement(JavaParser.SynchronizedStatementContext ctx) { }
 	@Override public void exitSynchronizedStatement(JavaParser.SynchronizedStatementContext ctx) { }
-	@Override public void enterTryStatement(JavaParser.TryStatementContext ctx) { }
-	@Override public void exitTryStatement(JavaParser.TryStatementContext ctx) { }
+	@Override public void enterTryStatement(JavaParser.TryStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("While", new Integer(0));
+		currentMethod.statementTypes.put("While", count + 1);
+	}
+	@Override public void exitTryStatement(JavaParser.TryStatementContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+
+		if (ctx.catches() == null && ctx.finally_() == null) {
+			Integer count = currentMethod.statementTypes.getOrDefault("Try", new Integer(0));
+			currentMethod.statementTypes.put("Try", count + 1);
+		} else if (ctx.catches() != null && ctx.finally_() != null) {
+			Integer count = currentMethod.statementTypes.getOrDefault("Try-Catch-Finally", new Integer(0));
+			currentMethod.statementTypes.put("Try-Catch-Finally", count + 1);
+		} else if (ctx.catches() != null) {
+			Integer count = currentMethod.statementTypes.getOrDefault("Try-Catch", new Integer(0));
+			currentMethod.statementTypes.put("Try-Catch", count + 1);
+		} else if (ctx.finally_() != null) {
+			Integer count = currentMethod.statementTypes.getOrDefault("Try-Finally", new Integer(0));
+			currentMethod.statementTypes.put("Try-Finally", count + 1);
+		}
+	}
 	@Override public void enterCatches(JavaParser.CatchesContext ctx) { }
 	@Override public void exitCatches(JavaParser.CatchesContext ctx) { }
 	@Override public void enterCatchClause(JavaParser.CatchClauseContext ctx) { }
@@ -654,7 +812,11 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void exitInferredFormalParameterList(JavaParser.InferredFormalParameterListContext ctx) { }
 	@Override public void enterLambdaBody(JavaParser.LambdaBodyContext ctx) { }
 	@Override public void exitLambdaBody(JavaParser.LambdaBodyContext ctx) { }
-	@Override public void enterAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) { }
+	@Override public void enterAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) {
+		CustomMethod currentMethod = (CustomMethod) tracer.peek();
+		Integer count = currentMethod.statementTypes.getOrDefault("Assignment", new Integer(0));
+		currentMethod.statementTypes.put("Assignment", count + 1);
+	}
 	@Override public void exitAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) { }
 	@Override public void enterAssignment(JavaParser.AssignmentContext ctx) { }
 	@Override public void exitAssignment(JavaParser.AssignmentContext ctx) { }
@@ -734,6 +896,7 @@ class CustomClass {
 	public List<String> typeParameters;
 	public String superClass;
 	public List<String> superInterfaces;
+	public Integer numeroLineas;
 
 	/** Class Attributes **/
 	public List<CustomVariable> constants;
@@ -752,13 +915,14 @@ class CustomClass {
 		interfaces = new ArrayList<>();
 	}
 
-	public CustomClass(String className, List<String> classModifiers, List<String> typeParameters, String superClass, List<String> superInterfaces) {
+	public CustomClass(String className, List<String> classModifiers, List<String> typeParameters, String superClass, List<String> superInterfaces, Integer numeroLineas) {
 		this();
 		this.classModifiers = classModifiers;
 		this.name = className;
 		this.typeParameters = typeParameters;
 		this.superClass = superClass;
 		this.superInterfaces = superInterfaces;
+		this.numeroLineas = numeroLineas;
 	}
 
 }
@@ -771,6 +935,7 @@ class CustomInterface {
 	public List<String> interfaceModifiers;
 	public List<String> superInterfaces;
 	public List<String> typeParameters;
+	public Integer numeroLineas;
 
 	/** Interface Attributes **/
 	public List<CustomVariable> constants;
@@ -785,12 +950,13 @@ class CustomInterface {
 		interfaces = new ArrayList<>();
 	}
 
-	public CustomInterface(String name, List<String> interfaceModifiers, List<String> superInterfaces, List<String> typeParameter) {
+	public CustomInterface(String name, List<String> interfaceModifiers, List<String> superInterfaces, List<String> typeParameter, Integer numeroLineas) {
 		this();
 		this.name = name;
 		this.interfaceModifiers = interfaceModifiers;
 		this.superInterfaces = superInterfaces;
 		this.typeParameters = typeParameters;
+		this.numeroLineas = numeroLineas;
 	}
 
 }
@@ -803,6 +969,8 @@ class CustomMethod {
 	public String result;
 	public List<String> exceptions;
 	public List<String> methodModifiers;
+	public Map<String, Integer> statementTypes;
+	public int numeroLineas;
 
 	/** Method Attributes **/
 	public List<CustomVariable> parameters;
@@ -810,15 +978,17 @@ class CustomMethod {
 
 	public CustomMethod() {
 		variables = new ArrayList<>();
+		statementTypes = new HashMap<>();
 	}
 
-	public CustomMethod(String name, List<String> methodModifiers, String result, List<CustomVariable> parameters, List<String> exceptions) {
+	public CustomMethod(String name, List<String> methodModifiers, String result, List<CustomVariable> parameters, List<String> exceptions, Integer numeroLineas) {
 		this();
 		this.name = name;
 		this.result = result;
 		this.exceptions = exceptions;
 		this.parameters = parameters;
 		this.methodModifiers = methodModifiers;
+		this.numeroLineas = numeroLineas;
 	}
 
 }

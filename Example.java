@@ -648,6 +648,8 @@ class Methods{
 	}
 
 	public void help( String command ){
+		int[] holamundo = {1,2,3,4}, adiosmundo = 2;
+
 		switch( command ){
 			case "create" : {
 				System.out.println( "command CREATE : Create a new account.\n" );
@@ -750,5 +752,3 @@ class Methods{
 		}
 	}
 }
-
-
