@@ -581,8 +581,13 @@ public class DocumenterListener extends JavaBaseListener {
 			String value = x.variableInitializer() == null ? null : x.variableInitializer().getText();
 
 			CustomVariable localVar = new CustomVariable(name, variableModifiers, type, value);
-			CustomMethod currentMethod = (CustomMethod) tracer.peek();
-			currentMethod.variables.add(localVar);
+			if (tracer.peek() instanceof CustomClass) {
+				CustomClass currentClass = (CustomClass) tracer.peek();
+				currentClass.variables.add(localVar);
+			} else if (tracer.peek() instanceof CustomMethod) {
+				CustomMethod currentMethod = (CustomMethod) tracer.peek();
+				currentMethod.variables.add(localVar);
+			}
 		}
 	}
 	@Override public void exitLocalVariableDeclaration(JavaParser.LocalVariableDeclarationContext ctx) { }
@@ -813,9 +818,11 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void enterLambdaBody(JavaParser.LambdaBodyContext ctx) { }
 	@Override public void exitLambdaBody(JavaParser.LambdaBodyContext ctx) { }
 	@Override public void enterAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) {
-		CustomMethod currentMethod = (CustomMethod) tracer.peek();
-		Integer count = currentMethod.statementTypes.getOrDefault("Assignment", new Integer(0));
-		currentMethod.statementTypes.put("Assignment", count + 1);
+		if (tracer.peek() instanceof CustomMethod) {
+			CustomMethod currentMethod = (CustomMethod) tracer.peek();
+			Integer count = currentMethod.statementTypes.getOrDefault("Assignment", new Integer(0));
+			currentMethod.statementTypes.put("Assignment", count + 1);
+		}
 	}
 	@Override public void exitAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) { }
 	@Override public void enterAssignment(JavaParser.AssignmentContext ctx) { }
@@ -870,7 +877,9 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void enterEveryRule(ParserRuleContext ctx) { }
 	@Override public void exitEveryRule(ParserRuleContext ctx) { }
 	@Override public void visitTerminal(TerminalNode node) { }
-	@Override public void visitErrorNode(ErrorNode node) { }
+	@Override public void visitErrorNode(ErrorNode node) {
+		System.out.println(node.getText());
+	}
 
 }
 
