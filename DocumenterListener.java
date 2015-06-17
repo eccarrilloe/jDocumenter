@@ -7,6 +7,7 @@ import java.util.Stack;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.antlr.v4.runtime.Token;
 
 public class DocumenterListener extends JavaBaseListener {
 
@@ -20,6 +21,7 @@ public class DocumenterListener extends JavaBaseListener {
 	public List<CustomImport> imports = new ArrayList<>();
 	public List<CustomClass> classes = new ArrayList<>();
 	public List<CustomInterface> interfaces = new ArrayList<>();
+	public List<TerminalNode> errors = new ArrayList<>();
 
 	/** Event Listeners **/
 	@Override public void enterLiteral(JavaParser.LiteralContext ctx) { }
@@ -276,20 +278,20 @@ public class DocumenterListener extends JavaBaseListener {
 			List<String> modifiers = new ArrayList<>();
 			String parameterName, type;
 			if (lastParameter.formalParameter() != null) {
-				parameterName = lastParameter.formalParameter().variableDeclaratorId().Identifier().getText();
+				parameterName = lastParameter.formalParameter().variableDeclaratorId().getText();
 				type = lastParameter.formalParameter().unannType().getText();
 
 				if (lastParameter.formalParameter().variableModifier() != null)
 					for (JavaParser.VariableModifierContext x : lastParameter.formalParameter().variableModifier())
 						modifiers.add(x.getText());
 			} else {
-				parameterName = lastParameter.variableDeclaratorId().Identifier().getText();
+				parameterName = lastParameter.variableDeclaratorId().getText();
 				type = lastParameter.unannType().getText();
 				if (lastParameter.variableModifier() != null)
 					for (JavaParser.VariableModifierContext x : lastParameter.variableModifier())
 						modifiers.add(x.getText());
 			}
-			parameter = new CustomVariable(name, modifiers, type, null);
+			parameter = new CustomVariable(parameterName, modifiers, type, null);
 			methodParameters.add(parameter);
 		}
 
@@ -818,14 +820,15 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void enterLambdaBody(JavaParser.LambdaBodyContext ctx) { }
 	@Override public void exitLambdaBody(JavaParser.LambdaBodyContext ctx) { }
 	@Override public void enterAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) {
+	}
+	@Override public void exitAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) { }
+	@Override public void enterAssignment(JavaParser.AssignmentContext ctx) {
 		if (tracer.peek() instanceof CustomMethod) {
 			CustomMethod currentMethod = (CustomMethod) tracer.peek();
 			Integer count = currentMethod.statementTypes.getOrDefault("Assignment", new Integer(0));
 			currentMethod.statementTypes.put("Assignment", count + 1);
 		}
 	}
-	@Override public void exitAssignmentExpression(JavaParser.AssignmentExpressionContext ctx) { }
-	@Override public void enterAssignment(JavaParser.AssignmentContext ctx) { }
 	@Override public void exitAssignment(JavaParser.AssignmentContext ctx) { }
 	@Override public void enterLeftHandSide(JavaParser.LeftHandSideContext ctx) { }
 	@Override public void exitLeftHandSide(JavaParser.LeftHandSideContext ctx) { }
@@ -878,7 +881,8 @@ public class DocumenterListener extends JavaBaseListener {
 	@Override public void exitEveryRule(ParserRuleContext ctx) { }
 	@Override public void visitTerminal(TerminalNode node) { }
 	@Override public void visitErrorNode(ErrorNode node) {
-		System.out.println(node.getText());
+		TerminalNode terminal = (TerminalNode) node;
+		errors.add(terminal);
 	}
 
 }
@@ -964,7 +968,7 @@ class CustomInterface {
 		this.name = name;
 		this.interfaceModifiers = interfaceModifiers;
 		this.superInterfaces = superInterfaces;
-		this.typeParameters = typeParameters;
+		this.typeParameters = typeParameter;
 		this.numeroLineas = numeroLineas;
 	}
 
