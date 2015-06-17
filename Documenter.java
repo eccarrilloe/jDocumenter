@@ -1,12 +1,16 @@
-import java.util.List;
+import java.io.File;
+import java.io.PrintWriter;
 
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.ANTLRFileStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 class Documenter
 {
-	public static String xml; 
+	public static String xml=""; 
 	
+	Boolean imports_printed=false;
 	static String separator="\n";
 	
 	public static void main(String[] args) throws Exception
@@ -23,74 +27,100 @@ class Documenter
 			DocumenterListener listener = new DocumenterListener();
 
 			walker.walk(listener, tree);
-					
-			printimports(listener.imports);
 			
-			printclasses(listener.classes);
+			if (!listener.imports.isEmpty()){
+				xml+="<imports total=\""+listener.imports.size()+"\">"+separator;
+				for (CustomImport x : listener.imports) {
+					xml+=printimport(x);
+				}
+				xml+="</imports>"+separator;
+				}
 			
-			printinterfaces(listener.interfaces);
+			if (!listener.classes.isEmpty()){
+				xml+="<clases total=\""+listener.classes.size()+"\">"+separator;
+				for (CustomClass x : listener.classes) {
+					xml+=printclass(x);
+				}
+				xml+="</clases>"+separator;
+				}
+			
+			if (!listener.interfaces.isEmpty()){
+				xml+="<interfaces total=\""+listener.interfaces.size()+"\">"+separator;
+				for (CustomInterface x : listener.interfaces) {
+					xml+=printinterface(x);
+				}
+				xml+="</interfaces>"+separator;
+				}
+			
+			xml="<codigo archivo=\""+filename+"\">"+xml+"</codigo>";
+			
+			//OutputStream outputStream = new FileOutputStream(out+"/"+args[0].substring(0, args[0].length()-5)+".xml");
+			
+	        File out=new File(System.getProperty("user.dir")+"/out");
+	        if (!out.exists())out.mkdirs();	
+			
+			PrintWriter output = new PrintWriter(out+"/"+filename+".xml");
+			output.println(XMLFormat.format(xml));
+			output.close();
+			
 			
 	    }
 	    catch (Exception e)
 	    {
 	    	e.printStackTrace();
 	    }
-		xml="<code>"+xml+"</code>";
-		System.out.println(xml);
+
+		
 	}
 
-	private static void printinterfaces(List<CustomInterface> interfaces) {
+	
+	private static String printimport(CustomImport x) {
+		
+		String content="";
+			content+="<import>"+x.name+"</import>"+separator;
+		return content;	
 	}
 	
-	private static void printimports(List<CustomImport> imports) {
-		if (!imports.isEmpty()){
-		xml+="<imports total=\""+imports.size()+"\">"+separator;
-		for (CustomImport x : imports) {
-			xml+="<import>"+x.name+"</import>"+separator;
-		}
-		xml+="</imports>"+separator;
-		}	
-	}
-	
-	private static void printclasses(List<CustomClass> classes){
-		if (!classes.isEmpty()){
-		
-			xml+="<clases total=\""+classes.size()+"\">"+separator;
-		
-		for (CustomClass x : classes) {
-			
-			String opentag="<clase name=\""+x.name+"\" ";
+	private static String printclass(CustomClass x){
+					
+			String opentag="<clase nombre=\""+x.name+"\" ";
 			String content="";
+					
+			if (x.superClass!=null) {
+				opentag+="superClase=\""+x.superClass+"\" ";
+			}
+			opentag=opentag.trim()+" númerolineas=\""+x.numeroLineas+"\">"+separator;
 			
 			if (x.classModifiers.size()>0){
+				content+="<modificadores total=\""+x.classModifiers.size()+"\">"+separator;
 				for (int j = 0; j < x.classModifiers.size(); j++){
-					opentag+="modificador_"+j+"=\""+x.classModifiers.get(j)+"\" ";
+					content+="<modificador>"+x.classModifiers.get(j)+"</modificador>"+separator;
 				}
-			}
-			
-			if (x.superClass!=null) {
-				opentag+="superClass=\""+x.superClass+"\" ";
+				content+="</modificadores>";
 			}
 			
 			if (x.superInterfaces.size()>0){
+				content+="<superInterfaces total=\""+x.superInterfaces.size()+"\">"+separator;
 				for (int j = 0; j < x.superInterfaces.size(); j++){
-					opentag+="superInterfaz_"+j+"=\""+x.superInterfaces.get(j).replace("<", "&lt;").replace(">", "&gt;")+"\" ";
+					content+="<superInterfaz>"+x.superInterfaces.get(j).replace("<", "&lt;").replace(">", "&gt;")+"</superInterfaz>"+separator;
 				}
+				content+="</superInterfaces>";
 			}
 
 			if (x.typeParameters.size()>0){
+				content+="<typeParameters total=\""+x.typeParameters.size()+"\">"+separator;
 				for (int j = 0; j < x.typeParameters.size(); j++){
-					opentag+="typeParameter"+j+"=\""+x.typeParameters.get(j)+"\" ";
+					content+="<typeParameter>"+x.typeParameters.get(j)+"</typeParameter>"+separator;
 				}
+				content+="</typeParameters>";
 			}
-			opentag=opentag.trim()+">"+separator;
 			
 			if (x.constants.size()>0){
-				content+="<constants total=\""+x.constants.size()+"\">"+separator;
+				content+="<constantes total=\""+x.constants.size()+"\">"+separator;
 				for (int j = 0; j < x.constants.size(); j++){
-					content+="<constant "+printvariable(x.constants.get(j))+"</constant>"+separator;
+					content+="<constante "+printvariable(x.constants.get(j))+"</constante>"+separator;
 				}
-				content+="</constants>"+separator;
+				content+="</constantes>"+separator;
 			}
 			
 			if (x.variables.size()>0){
@@ -110,114 +140,131 @@ class Documenter
 			}
 			
 			if (x.methods.size()>0){
-				content+="<methods total=\""+x.methods.size()+"\">"+separator;
+				content+="<métodos total=\""+x.methods.size()+"\">"+separator;
 				for (int j = 0; j < x.methods.size(); j++){
-					content+="<method "+printmethod(x.methods.get(j))+"</method>"+separator;
+					content+="<método "+printmethod(x.methods.get(j))+"</método>"+separator;
 				}
-				content+="</methods>"+separator;
+				content+="</métodos>"+separator;
 			}
 			
 			if (x.classes.size()>0){
-				content+="<classes total=\""+x.classes.size()+"\">"+separator;
+				content+="<clases total=\""+x.classes.size()+"\">"+separator;
 				for (int j = 0; j < x.classes.size(); j++){
 					content+=printclass(x.classes.get(j));
 				}
-				content+="</classes>"+separator;
+				content+="</clases>"+separator;
 			}
 			
 			if (x.interfaces.size()>0){
 				content+="<interfaces total=\""+x.interfaces.size()+"\">"+separator;
 				for (int j = 0; j < x.interfaces.size(); j++){
-					content+=printinterfas(x.interfaces.get(j));
+					content+=printinterface(x.interfaces.get(j));
 				}
 				content+="</interfaces>"+separator;
 			}
 						
-			xml+=opentag+content+"</clase>"+separator;
-		}
-		xml+="</clases>"+separator;
-		}
-	}
-
-
-	private static String printinterfas(CustomInterface customInterface) {
-		String content="";
-		
-		content+="name=\""+customInterface.name+"\" ";
-		for (int j = 0; j < customInterface.interfaceModifiers.size(); j++){
-			content+="modificador_"+j+"=\""+customInterface.interfaceModifiers.get(j)+"\" ";
-		}
-		for (int j = 0; j < customInterface.superInterfaces.size(); j++){
-			content+="superInterface_"+j+"=\""+customInterface.superInterfaces.get(j)+"\" ";
-		}
-		for (int j = 0; j < customInterface.typeParameters.size(); j++){
-			content+="typeParameter_"+j+"=\""+customInterface.typeParameters.get(j)+"\" ";
-		}
-		content+=">";
-		
-		if (customInterface.constants.size()>0){
-			content+="<constants total=\""+customInterface.constants.size()+"\">"+separator;
-			for (int j = 0; j < customInterface.constants.size(); j++){
-				content+="<constant "+printvariable(customInterface.constants.get(j))+"</constant>"+separator;
-			}
-			content+="</constants>"+separator;
-		}		
-		
-		if (customInterface.methods.size()>0){
-			content+="<methods total=\""+customInterface.methods.size()+"\">"+separator;
-			for (int j = 0; j < customInterface.methods.size(); j++){
-				content+="<method "+printmethod(customInterface.methods.get(j))+"</method>"+separator;
-			}
-			content+="</methods>"+separator;
-		}
-
-		if (customInterface.classes.size()>0){
-			content+="<classes total=\""+customInterface.classes.size()+"\">"+separator;
-			for (int j = 0; j < customInterface.classes.size(); j++){
-				content+=printclass(customInterface.classes.get(j));
-			}
-			content+="</classes>"+separator;
-		}
-		
-		if (customInterface.interfaces.size()>0){
-			content+="<interfaces total=\""+customInterface.interfaces.size()+"\">"+separator;
-			for (int j = 0; j < customInterface.interfaces.size(); j++){
-				content+=printinterfas(customInterface.interfaces.get(j));
-			}
-			content+="</interfaces>"+separator;
-		}
+			content=opentag+content+"</clase>"+separator;
+				
 		return content;
 	}
 
+	private static String printinterface(CustomInterface x) {
+		String content="";
+		
+		content+="<interfaz nombre=\""+x.name+"\" númerolineas=\""+x.numeroLineas+"\">";
+		
+		if (x.interfaceModifiers.size()>0){
+			content+="<modificadores total=\""+x.interfaceModifiers.size()+"\">"+separator;
+			for (int j = 0; j < x.interfaceModifiers.size(); j++){
+				content+="<modificador>"+x.interfaceModifiers.get(j)+"</modificador>"+separator;
+			}
+			content+="</modificadores>";
+		}
+		
+		if (x.superInterfaces.size()>0){
+			content+="<superInterfaces total=\""+x.superInterfaces.size()+"\">"+separator;
+			for (int j = 0; j < x.superInterfaces.size(); j++){
+				content+="<superInterfaz>"+x.superInterfaces.get(j).replace("<", "&lt;").replace(">", "&gt;")+"</superInterfaz>"+separator;
+			}
+			content+="</superInterfaces>";
+		}
 
-	private static String printclass(CustomClass customClass) {
-		// TODO Auto-generated method stub
-		return null;
+		if (x.typeParameters.size()>0){
+			content+="<typeParameters total=\""+x.typeParameters.size()+"\">"+separator;
+			for (int j = 0; j < x.typeParameters.size(); j++){
+				content+="<typeParameter>"+x.typeParameters.get(j)+"</typeParameter>"+separator;
+			}
+			content+="</typeParameters>";
+		}
+		
+		if (x.constants.size()>0){
+			content+="<constantes total=\""+x.constants.size()+"\">"+separator;
+			for (int j = 0; j < x.constants.size(); j++){
+				content+="<constante "+printvariable(x.constants.get(j))+"</constante>"+separator;
+			}
+			content+="</constantes>"+separator;
+		}		
+		
+		if (x.methods.size()>0){
+			content+="<métodos total=\""+x.methods.size()+"\">"+separator;
+			for (int j = 0; j < x.methods.size(); j++){
+				content+="<método "+printmethod(x.methods.get(j))+"</método>"+separator;
+			}
+			content+="</métodos>"+separator;
+		}
+
+		if (x.classes.size()>0){
+			content+="<clases total=\""+x.classes.size()+"\">"+separator;
+			for (int j = 0; j < x.classes.size(); j++){
+				content+=printclass(x.classes.get(j));
+			}
+			content+="</clases>"+separator;
+		}
+		
+		if (x.interfaces.size()>0){
+			content+="<interfaces total=\""+x.interfaces.size()+"\">"+separator;
+			for (int j = 0; j < x.interfaces.size(); j++){
+				content+=printinterface(x.interfaces.get(j));
+			}
+			content+="</interfaces>"+separator;
+		}
+			content+="</interfaz>";
+		return content;
 	}
 
-	private static String printmethod(CustomMethod customMethod) {
+	private static String printmethod(CustomMethod x) {
 		String content="";
-		content+="name=\""+customMethod.name+"\" resultado=\""+customMethod.result+"\" ";
-		for (int j = 0; j < customMethod.exceptions.size(); j++){
-		content+="excepcion_"+j+"=\""+customMethod.exceptions.get(j)+"\" ";
-		}
-		for (int j = 0; j < customMethod.methodModifiers.size(); j++){
-		content+="modificador_"+j+"=\""+customMethod.methodModifiers.get(j)+"\" ";
-		}
-		content+=">";
+		content+="nombre=\""+x.name+"\" resultado=\""+x.result+"\" ";
+		content+="númerolineas=\""+x.numeroLineas+"\">";
 		
-		if (customMethod.parameters.size()>0){
-			content+="<parametros total=\""+customMethod.parameters.size()+"\">";
-			for (int j = 0; j < customMethod.parameters.size(); j++){
-				content+="<parametro "+printvariable(customMethod.parameters.get(j))+"</parametro>"+separator;
+		if (x.methodModifiers.size()>0){
+			content+="<modificadores total=\""+x.methodModifiers.size()+"\">"+separator;
+			for (int j = 0; j < x.methodModifiers.size(); j++){
+				content+="<modificador>"+x.methodModifiers.get(j)+"</modificador>"+separator;
 			}
-			content+="</parametros>";
+			content+="</modificadores>";
 		}
 		
-		if (customMethod.variables.size()>0){
-			content+="<variables total=\""+customMethod.variables.size()+"\">";
-			for (int j = 0; j < customMethod.variables.size(); j++){
-				content+="<variable "+printvariable(customMethod.variables.get(j))+"</variable>"+separator;
+		if (x.parameters.size()>0){
+			content+="<parámetros total=\""+x.parameters.size()+"\">";
+			for (int j = 0; j < x.parameters.size(); j++){
+				content+="<parámetro "+printvariable(x.parameters.get(j))+"</parámetro>"+separator;
+			}
+			content+="</parámetros>";
+		}
+		
+		if (x.exceptions.size()>0){
+			content+="<excepciones total=\""+x.exceptions.size()+"\">"+separator;
+			for (int j = 0; j < x.exceptions.size(); j++){
+				content+="<excepcion>"+x.exceptions.get(j)+"</excepcion>"+separator;
+			}
+			content+="</excepciones>";
+		}
+		
+		if (x.variables.size()>0){
+			content+="<variables total=\""+x.variables.size()+"\">";
+			for (int j = 0; j < x.variables.size(); j++){
+				content+="<variable "+printvariable(x.variables.get(j))+"</variable>"+separator;
 			}
 			content+="</variables>";
 		}
@@ -225,16 +272,20 @@ class Documenter
 		return content;
 	}
 
-
-	private static String printvariable(CustomVariable customVariable) {
-		String content="name=\""+customVariable.name.replace("<", "&lt;").replace(">", "&gt;")+"\" "
-				+ "type=\""+customVariable.type.replace("<", "&lt;").replace(">", "&gt;")+"\" ";
+	private static String printvariable(CustomVariable x) {
+		String content="nombre=\""+x.name.replace("<", "&lt;").replace(">", "&gt;")+"\" "
+				+ "tipo=\""+x.type.replace("<", "&lt;").replace(">", "&gt;")+"\" ";
+		if (x.value!=null)
+						content+= "Valor=\""+x.value.replace("\"", "&quot;")+"\">";
+		else content+=">";
 		
-		for (int j = 0; j < customVariable.modifiers.size(); j++){
-			content+="modificador_"+j+"=\""+customVariable.modifiers.get(j)+"\" ";
+		if (x.modifiers.size()>0){
+			content+="<modificadores total=\""+x.modifiers.size()+"\">";
+		for (int j = 0; j < x.modifiers.size(); j++){
+			content+="<modificador>"+x.modifiers.get(j)+"</modificador>";
 		}
-		
-		content+=">"+customVariable.value;
+			content+="</modificadores>";
+		}
 		
 		return content;
 	}
